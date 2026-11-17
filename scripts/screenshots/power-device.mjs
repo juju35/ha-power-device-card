@@ -9,7 +9,7 @@ const scenes = ["airfryer", "washer", "pc", "kettle", "monitor", "offline"].flat
 await shoot({
   prefix: "pd",
   tag: "power-device-card",
-  shots: [...scenes, ...still("pc-night", { scene: "pc", night: true }), ...still("compact", { scene: "airfryer", config: { show_graph: false } })],
+  shots: [...scenes, ...still("pc-night", { scene: "pc", config: { illustration_theme: "night" } }), ...still("compact", { scene: "airfryer", config: { show_graph: false } })],
   setup,
   ws: wsFor,
 });

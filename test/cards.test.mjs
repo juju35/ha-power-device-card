@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { makeHass } from "./hass.mjs";
+import { makeHass, st } from "./hass.mjs";
 import { fakeNode, load } from "./load.mjs";
 
 const pd = load();
@@ -158,6 +158,18 @@ test("options: threshold, kind, a picture, the price as a sensor, no graph", asy
   assert.match(html, /<image href="\/local\/fryer\.png"/);
   assert.doesNotMatch(html, /class="cv"/);
   assert.match(html, /€0\.11/, "0.42 kWh at the sensor's 0.25");
+});
+
+test("banner night: the dark theme alone, unless illustration_theme forces it", () => {
+  const night = (darkMode, sun, config = {}) => {
+    const h = makeHass();
+    const card = make("power-device-card", { ...FRYER, ...config }, { ...h, themes: { darkMode }, states: { ...h.states, "sun.sun": st("sun.sun", sun) } });
+    return card._night();
+  };
+  assert.equal(night(false, "below_horizon"), false, "light theme after sunset: day");
+  assert.equal(night(true, "above_horizon"), true, "dark theme while the sun is up: night");
+  assert.equal(night(true, "below_horizon", { illustration_theme: "day" }), false);
+  assert.equal(night(false, "above_horizon", { illustration_theme: "night" }), true);
 });
 
 test("no power sensor: says so", () => {

@@ -96,9 +96,8 @@ export const setup = (s) => {
     [`sensor.${id}_power`]: st(`sensor.${id}_power`, v.watts == null ? "unavailable" : String(v.watts), { device_class: "power", unit_of_measurement: "W", friendly_name: `${v.name} Power` }),
     [`switch.${id}`]: st(`switch.${id}`, v.watts == null ? "unavailable" : "on", { friendly_name: v.name }),
     [`sensor.${id}_energy_today`]: st(`sensor.${id}_energy_today`, v.today == null ? "unavailable" : String(v.today), { device_class: "energy", unit_of_measurement: "kWh", friendly_name: `${v.name} Energy today` }),
-    "sun.sun": st("sun.sun", s.night ? "below_horizon" : "above_horizon", { friendly_name: "Sun" }),
   };
-  const entities = Object.fromEntries(Object.keys(states).filter((k) => !k.startsWith("sun.")).map((k) => [k, { entity_id: k, device_id: id, platform: "shelly" }]));
+  const entities = Object.fromEntries(Object.keys(states).map((k) => [k, { entity_id: k, device_id: id, platform: "shelly" }]));
   return {
     hass: {
       language: "en",

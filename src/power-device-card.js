@@ -440,7 +440,6 @@ class PowerDeviceCard extends RcCard {
       cost: this._cost(energy),
       switchId: sst && !rcUnavailable(sst) ? e.switch : null,
       switchOn: sst?.state === "on",
-      night: h.states["sun.sun"]?.state === "below_horizon",
     };
   }
 
@@ -448,11 +447,12 @@ class PowerDeviceCard extends RcCard {
     return !!this._hass.themes?.darkMode;
   }
 
-  // The banner's night: forced by `illustration_theme`, else the sun below the horizon or Home Assistant's dark theme.
+  // The banner's night: forced by `illustration_theme`, else Home Assistant's dark theme alone (a light theme keeps the
+  // day picture after sunset).
   _night() {
     const theme = this._config.illustration_theme;
     if (theme === "night" || theme === "day") return theme === "night";
-    return this._hass.states["sun.sun"]?.state === "below_horizon" || this._dark();
+    return this._dark();
   }
 
   _animate() {
