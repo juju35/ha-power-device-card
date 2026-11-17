@@ -38,7 +38,7 @@ The cards share the look of the other ha-* cards (illustrated header with a stat
 - **Three tiles**: this cycle's energy (or the last cycle's), today's energy (the device's daily energy sensor, else worked out from the power since midnight), today's cost (with `price`, a number or a price sensor, in Home Assistant's currency), else the curve's peak
 - **Chips**: today's cycles, their average length, how long ago the last one ended
 - **The plug's switch**: a round button turns the appliance on and off (the plug's switch, found on its device, or `switch`; `show_controls: false` removes it)
-- **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (the sun below the horizon or the dark theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
+- **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (with a dark Home Assistant theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
 - **Your own picture**: `image: /local/my-appliance.png` draws it in place of the illustration, standing in the room
 - `animations: false` stops the illustration (also when the system asks for reduced motion)
 
@@ -157,7 +157,7 @@ entity: sensor.kettle_power
 | `cycle_gap` | number | by kind | YAML: minutes under the threshold that do not end a cycle |
 | `price` | number or string | | The price of a kWh, or a sensor with it, for today's cost |
 | `illustration` | boolean | `true` | Both: the illustrated header (`false`: the classic header) |
-| `illustration_theme` | string | `auto` | Both: `auto` (night with the sun below the horizon or with the dark theme), `day` or `night` |
+| `illustration_theme` | string | `auto` | Both: `auto` (follows the Home Assistant theme: night with a dark theme, day with a light theme), `day` or `night` |
 | `show_graph` | boolean | `true` | The 24-hour curve |
 | `animations` | boolean | `true` | Steam, drums, fans and LEDs |
 | `show_controls` | boolean | `true` | The plug's switch |
