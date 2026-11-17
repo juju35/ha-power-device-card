@@ -3,7 +3,7 @@
 // CSS animations are paused and stepped frame by frame — each one by a fraction of its own cycle, so every GIF
 // loops cleanly whatever the machine's speed.
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cardClip, iconsFor, launch, mountCard, openPage, root } from "./harness.mjs";
@@ -32,6 +32,7 @@ const encode = (dir, out) => {
     "-fflags", "+bitexact", "-flags", "+bitexact", "-loop", "0", gif,
   ]);
   const target = `${root}${out}`;
+  mkdirSync(`${root}screenshots`, { recursive: true });
   const same = existsSync(target) && decodedFrames(target) === decodedFrames(gif);
   if (!same) copyFileSync(gif, target);
   console.log(`${out}${same ? " (unchanged)" : ""}`);
