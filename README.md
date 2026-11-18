@@ -10,6 +10,18 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/icon.svg" alt="Power Device Card" width="120"></p>
 
+<p align="center">
+  <a href="https://www.tp-link.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tplink.png" alt="TP-Link" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.shelly.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/shelly.png" alt="Shelly" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.home-assistant.io/integrations/zha/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/zha.png" alt="Zigbee Home Automation" width="48"></a>&nbsp;&nbsp;
+  <a href="https://csa-iot.org/all-solutions/matter/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/matter.png" alt="Matter" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.tuya.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tuya.png" alt="Tuya" width="48"></a>&nbsp;&nbsp;
+  <a href="https://github.com/rospogrigio/localtuya"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/localtuya.png" alt="Local Tuya" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.meross.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/meross_lan.png" alt="Meross" width="48"></a>&nbsp;&nbsp;
+  <a href="https://sonoff.tech/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/sonoff.png" alt="Sonoff" width="48"></a>&nbsp;&nbsp;
+  <a href="https://tasmota.github.io/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tasmota.png" alt="Tasmota" width="48"></a>
+</p>
+
 An illustrated Lovelace card for **any appliance on a smart plug or a power meter**: an air fryer, a kettle, a washing machine with no integration of its own, a PC, a homelab rack… A power sensor is all it needs. It shows the power, whether the appliance runs and for how long, when its cycle ended, its last 24 hours as a curve, this cycle's and today's energy and cost, and the plug's switch.
 
 [![Open your Home Assistant instance and open a repository inside the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=juju35&repository=ha-power-device-card&category=plugin)
@@ -79,13 +91,13 @@ Any integration giving a **power sensor** (a `sensor` with the `power` device cl
 
 | Integration | Plugs and meters |
 |---|---|
-| [Shelly](https://www.home-assistant.io/integrations/shelly/) (built in) | Shelly Plug S, Plus Plug S, Plug US, 1PM, Pro 1PM, EM, Pro 3EM |
-| [TP-Link Smart Home](https://www.home-assistant.io/integrations/tplink/) (built in) | Tapo P110, P115, Kasa KP115, HS110 |
-| [Zigbee Home Automation](https://www.home-assistant.io/integrations/zha/) (built in) | Zigbee plugs with metering (Nous A1Z, Ikea Inspelning, Aqara, Tuya…) |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/shelly.png" alt="" width="16"> [Shelly](https://www.home-assistant.io/integrations/shelly/) (built in) | Shelly Plug S, Plus Plug S, Plug US, 1PM, Pro 1PM, EM, Pro 3EM |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tplink.png" alt="" width="16"> [TP-Link Smart Home](https://www.home-assistant.io/integrations/tplink/) (built in) | Tapo P110, P115, Kasa KP115, HS110 |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/zha.png" alt="" width="16"> [Zigbee Home Automation](https://www.home-assistant.io/integrations/zha/) (built in) | Zigbee plugs with metering (Nous A1Z, Ikea Inspelning, Aqara, Tuya…) |
 | [Zigbee2MQTT](https://www.zigbee2mqtt.io/guide/usage/integrations/home_assistant.html) (MQTT) | The same Zigbee plugs |
-| [Matter](https://www.home-assistant.io/integrations/matter/) (built in) | Matter plugs with energy measurement |
-| [Tuya](https://www.home-assistant.io/integrations/tuya/) (built in) and [Local Tuya](https://github.com/rospogrigio/localtuya) (Marketplace) | Tuya and Smart Life plugs with power |
-| [Meross](https://github.com/krahabb/meross_lan) (Marketplace), [Sonoff](https://github.com/AlexxIT/SonoffLAN) (Marketplace), [Tasmota](https://www.home-assistant.io/integrations/tasmota/) (built in), [ESPHome](https://www.home-assistant.io/integrations/esphome/) (built in) | Their plugs and meters |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/matter.png" alt="" width="16"> [Matter](https://www.home-assistant.io/integrations/matter/) (built in) | Matter plugs with energy measurement |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tuya.png" alt="" width="16"> [Tuya](https://www.home-assistant.io/integrations/tuya/) (built in) and <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/localtuya.png" alt="" width="16"> [Local Tuya](https://github.com/rospogrigio/localtuya) (Marketplace) | Tuya and Smart Life plugs with power |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/meross_lan.png" alt="" width="16"> [Meross](https://github.com/krahabb/meross_lan) (Marketplace), <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/sonoff.png" alt="" width="16"> [Sonoff](https://github.com/AlexxIT/SonoffLAN) (Marketplace), <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tasmota.png" alt="" width="16"> [Tasmota](https://www.home-assistant.io/integrations/tasmota/) (built in), [ESPHome](https://www.home-assistant.io/integrations/esphome/) (built in) | Their plugs and meters |
 | [Template](https://www.home-assistant.io/integrations/template/) and [Integration](https://www.home-assistant.io/integrations/integration/) (built in) | A power sensor of your own (a CT clamp, a calculated power) |
 
 When the card picks the wrong switch or energy sensor, set it with `switch` / `energy`, and open an issue with the plug's entities so that the discovery learns it.
