@@ -743,7 +743,7 @@ class PowerDeviceCard extends RcCard {
     const kwh = (v) => (v != null ? [this._kwh(v), "kWh"] : null);
     const all = {
       duty: ["cycle", "t_duty", m.duty != null ? [this._fmt(m.duty * 100, 0), "%"] : null],
-      cycle: ["bolt", m.state === "running" ? "t_cycle" : "t_last_cycle", m.cycle ? kwh(m.cycle.kwh) : m.lastCycle ? kwh(m.lastCycle.kwh) : null],
+      cycle: ["bolt", m.state === "running" || m.cooling ? "t_cycle" : "t_last_cycle", m.cycle ? kwh(m.cycle.kwh) : m.lastCycle ? kwh(m.lastCycle.kwh) : null],
       today: ["bars", "t_today", kwh(m.today)],
       cost: ["cost", "t_cost", m.cost ? [m.cost, ""] : null],
       peak: ["peak", "t_peak", m.peak ? rcWatts(m.peak, this._lang()).split(" ") : null],
