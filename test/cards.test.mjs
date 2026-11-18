@@ -70,6 +70,12 @@ test("kinds from the name, in several languages; a dishwasher is not a washer", 
     "Chargeur d'outils Ryobi": "tools",
     PerfectDraft: "beer",
     "Smart plug 3": "plug",
+    Frigo: "fridge",
+    "Fridge-freezer": "fridge",
+    Kühlschrank: "fridge",
+    Congélateur: "freezer",
+    Gefriertruhe: "freezer",
+    "Cafetière filtre": "coffee",
   };
   for (const [name, kind] of Object.entries(cases)) assert.equal(pd.pdKindOf(name), kind, name);
   for (const k of pd.PD_KINDS) assert.ok(pd.PD_I18N.en[`k_${k}`], `k_${k}`);
@@ -212,7 +218,7 @@ test("editors: defaults stay out of the YAML, every field has a label", () => {
     ed.setConfig({ type: `custom:${tag}`, ...FRYER });
     ed.hass = makeHass();
     const names = flat(ed._form.schema).map((f) => f.name);
-    for (const n of ["entity", "kind", "image", "switch", "energy", "threshold", "standby", "price", "show_graph", "illustration_theme", "language"]) assert.ok(names.includes(n), `${tag}: ${n}`);
+    for (const n of ["entity", "kind", "model", "image", "switch", "energy", "threshold", "standby", "price", "temperature", "freezer_temperature", "max_temp", "door", "show_graph", "illustration_theme", "language"]) assert.ok(names.includes(n), `${tag}: ${n}`);
     for (const f of flat(ed._form.schema)) {
       assert.notEqual(ed._form.computeLabel(f), `ed_${f.name}`, `${tag}: no label for ${f.name}`);
       const helper = ed._form.computeHelper(f);
@@ -223,4 +229,112 @@ test("editors: defaults stay out of the YAML, every field has a label", () => {
     ed._form.listeners["value-changed"]({ detail: { value: { type: `custom:${tag}`, ...FRYER, threshold: 10, kind: "auto", show_graph: true } } });
     assert.deepEqual(json(out), { type: `custom:${tag}`, ...FRYER });
   }
+});
+
+test("models: from the option, else from the name, else the kind's first", () => {
+  assert.equal(pd.pdModelOf("fridge", "american", "Frigo"), "american");
+  assert.equal(pd.pdModelOf("fridge", "auto", "Frigo combiné"), "combi");
+  assert.equal(pd.pdModelOf("fridge", undefined, "Fridge-freezer"), "combi");
+  assert.equal(pd.pdModelOf("fridge", undefined, "Frigo américain"), "american");
+  assert.equal(pd.pdModelOf("fridge", undefined, "French door fridge"), "multi_door");
+  assert.equal(pd.pdModelOf("fridge", undefined, "Frigo cuisine"), "single");
+  assert.equal(pd.pdModelOf("freezer", undefined, "Congélateur coffre"), "chest");
+  assert.equal(pd.pdModelOf("freezer", undefined, "Congélateur cellier"), "drawers");
+  assert.equal(pd.pdModelOf("coffee", undefined, "Cafetière filtre"), "filter");
+  assert.equal(pd.pdModelOf("coffee", undefined, "Coffee maker"), "espresso");
+  assert.equal(pd.pdModelOf("fridge", "chest", "Frigo"), "single", "a model of another kind is ignored");
+  assert.equal(pd.pdModelOf("washer", "combi", "Lave-linge"), null);
+  for (const m of Object.values(pd.PD_MODELS).flatMap((l) => l.map(([k]) => k))) assert.ok(pd.PD_I18N.en[`m_${m}`], `m_${m}`);
+});
+
+// A fridge's compressor: 15 min on, 25 min off, all day.
+const COMPRESSOR = (on) => {
+  const rows = [];
+  for (let t = -1440; t < -40; t += 40) rows.push([t, 85], [t + 15, 1.2]);
+  rows.push(...(on ? [[-6, 88]] : [[-45, 86], [-30, 1.1]]));
+  return rows;
+};
+const FRIDGE = { ...FRYER, kind: "fridge", temperature: "sensor.fridge_temp" };
+const fridgeHass = (opts = {}, extra = {}) => {
+  const h = makeHass({ watts: opts.watts ?? "88", history: COMPRESSOR(opts.on ?? true), ...opts.hass });
+  h.states = {
+    ...h.states,
+    "sensor.fridge_temp": st("sensor.fridge_temp", opts.temp ?? "4", { device_class: "temperature", unit_of_measurement: "°C" }),
+    "sensor.freezer_temp": st("sensor.freezer_temp", opts.temp2 ?? "-18", { device_class: "temperature", unit_of_measurement: "°C" }),
+    "binary_sensor.fridge_door": { ...st("binary_sensor.fridge_door", opts.door ?? "off", { device_class: "door" }), last_changed: new Date(Date.now() - 45000).toISOString() },
+    ...extra,
+  };
+  return h;
+};
+
+test("fridge: cooling or resting, never done; its temperature big; the duty cycle over 24 h", async () => {
+  const card = make("power-device-card", { ...FRIDGE, model: "combi", freezer_temperature: "sensor.freezer_temp", price: 0.25 }, fridgeHass());
+  await settle();
+  card._render();
+  const m = card._items;
+  assert.equal(m.state, "cooling");
+  assert.equal(m.model, "combi");
+  const html = card.shadowRoot.innerHTML;
+  assert.match(html, /<span class="bpt">Cooling<\/span>/);
+  assert.match(html, /<span class="big">4<\/span><span class="u">°C · −18 °C<\/span>|<span class="big">4<\/span><span class="u">°C · -18 °C<\/span>/);
+  assert.match(html, /Duty cycle/);
+  assert.ok(m.duty > 0.3 && m.duty < 0.45, String(m.duty));
+  assert.match(html, /class="lvl-cooling|lvl-cooling/);
+  const rest = make("power-device-card", FRIDGE, fridgeHass({ watts: "1.1", on: false }));
+  await settle();
+  rest._render();
+  assert.equal(rest._items.state, "standby");
+  assert.match(rest.shadowRoot.innerHTML, /<span class="bpt">Compressor off<\/span>/);
+  assert.match(rest.shadowRoot.innerHTML, /Compressor off for 30 min/);
+});
+
+test("fridge alerts: the door, too warm, no power, running non-stop", async () => {
+  const door = make("power-device-card", { ...FRIDGE, door: "binary_sensor.fridge_door" }, fridgeHass({ door: "on" }));
+  await settle();
+  door._render();
+  assert.equal(door._items.state, "alert");
+  assert.equal(door._items.alert, "door");
+  assert.match(door.shadowRoot.innerHTML, /<span class="bpt">Door open<\/span>/);
+  assert.match(door.shadowRoot.innerHTML, /Door open for 45 s/);
+  assert.match(door.shadowRoot.innerHTML, /#fff6d6/, "the door is drawn open, the inside lit");
+  const warm = make("power-device-card", FRIDGE, fridgeHass({ temp: "11" }));
+  assert.equal(warm._items.alert, "warm");
+  assert.match(warm.shadowRoot.innerHTML, /Above 8 °C/);
+  const freezer = make("power-device-card", { ...FRIDGE, kind: "freezer", max_temp: -15 }, fridgeHass({ temp: "-14" }));
+  assert.equal(freezer._items.alert, "warm", "a freezer at −14 above its −15 maximum");
+  const cut = make("power-device-card", FRIDGE, fridgeHass({ hass: { sw: "off" } }));
+  assert.equal(cut._items.alert, "cut");
+  const silent = make("power-device-card", FRIDGE, fridgeHass({ watts: "0", hass: { history: [[-600, 0]] } }));
+  await settle();
+  assert.equal(silent._items.alert, "cut", "no compressor cycle for hours");
+  const long = make("power-device-card", FRIDGE, fridgeHass({ hass: { history: [[-600, 1], [-150, 95]] } }));
+  await settle();
+  assert.equal(long._items.alert, "long");
+  assert.match(long.shadowRoot.innerHTML, /Running non-stop for 2 h 30/);
+});
+
+test("filter coffee maker: brewing, then keeping warm, and when it turns itself off", async () => {
+  const brewing = make("power-device-card", { ...FRYER, kind: "coffee", model: "filter" }, makeHass({ watts: "950", history: [[-600, 0], [-6, 950]] }));
+  await settle();
+  brewing._render();
+  assert.equal(brewing._items.phase, "brewing");
+  assert.match(brewing.shadowRoot.innerHTML, /<span class="bpt">Brewing<\/span>/);
+  assert.match(brewing.shadowRoot.innerHTML, /Brewing for 6 min/);
+  assert.match(brewing.shadowRoot.innerHTML, /Turns itself off in 34 min/);
+  const warm = make("power-device-card", { ...FRYER, kind: "coffee", model: "filter" }, makeHass({ watts: "70", history: [[-600, 0], [-25, 950], [-15, 70]] }));
+  await settle();
+  warm._render();
+  assert.equal(warm._items.phase, "warm");
+  assert.match(warm.shadowRoot.innerHTML, /Keeping warm for 15 min/);
+  assert.match(warm.shadowRoot.innerHTML, /fill="#ff6b6b"/, "the plate glows");
+});
+
+test("mini card of a fridge: its temperature and how long the compressor rests", async () => {
+  const card = make("power-device-mini-card", FRIDGE, fridgeHass({ watts: "1.1", on: false }));
+  await settle();
+  card._render();
+  const html = card.shadowRoot.innerHTML;
+  assert.match(html, /class="lvl-standby bn"/);
+  assert.match(html, /<span>4 °C<\/span>/);
+  assert.match(html, /Compressor off for 30 min/);
 });
