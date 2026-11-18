@@ -5,7 +5,22 @@ import { setup, wsFor } from "./mock.mjs";
 
 // Stills: animations: false draws the steam, drums and LEDs at a fixed moment, so a capture only changes when the card does.
 const still = (file, s) => pair(file, { ...s, config: { animations: false, ...s.config } });
-const scenes = ["airfryer", "washer", "pc", "kettle", "monitor", "offline"].flatMap((scene) => still(scene, { scene }));
+const scenes = [
+  "airfryer",
+  "washer",
+  "pc",
+  "kettle",
+  "monitor",
+  "offline",
+  "fridge",
+  "fridge-combi",
+  "fridge-american",
+  "fridge-door",
+  "freezer-chest",
+  "freezer-drawers",
+  "coffee-filter",
+  "coffee-filter-warm",
+].flatMap((scene) => still(scene, { scene }));
 await shoot({
   prefix: "pd",
   tag: "power-device-card",
@@ -16,7 +31,14 @@ await shoot({
 await shoot({
   prefix: "pd-mini",
   tag: "power-device-mini-card",
-  shots: [...still("airfryer", { scene: "airfryer" }), ...still("washer", { scene: "washer" }), ...still("zoom", { scene: "airfryer", open: ".zoom" })],
+  shots: [
+    ...still("airfryer", { scene: "airfryer" }),
+    ...still("washer", { scene: "washer" }),
+    ...still("fridge-door", { scene: "fridge-door" }),
+    ...still("freezer-chest", { scene: "freezer-chest" }),
+    ...still("coffee-filter", { scene: "coffee-filter" }),
+    ...still("zoom", { scene: "airfryer", open: ".zoom" }),
+  ],
   setup,
   ws: wsFor,
 });

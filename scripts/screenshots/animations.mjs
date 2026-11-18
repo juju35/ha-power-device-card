@@ -76,12 +76,13 @@ const recordCycle = async (page, dir, seconds) => {
 const browser = await launch();
 
 // The running appliances, in both themes: <name>.gif light, <name>-dark.gif dark. The air fryer steams, the washing
-// machine's drum turns, the PC's fans spin, the rack's LEDs blink (SVG animations, one loop of 2.4 s, stepped with the
-// page's SVG clock).
+// machine's drum turns, the PC's fans spin, the rack's LEDs blink, the fridge's frost twinkles while its compressor
+// runs, the open fridge door's light and alert blink, the chest freezer frosts, the filter coffee drips into its jug,
+// then its plate glows (SVG animations, one loop of 2.4 s, stepped with the page's SVG clock).
 for (const theme of ["light", "dark"]) {
   const dark = theme === "dark";
   const suffix = dark ? "-dark" : "";
-  for (const scene of ["airfryer", "washer-running", "pc", "homelab"]) {
+  for (const scene of ["airfryer", "washer-running", "pc", "homelab", "fridge", "fridge-door", "freezer-chest", "coffee-filter", "coffee-filter-warm"]) {
     const name = `pd-${scene.replace("-running", "")}`;
     const s = { scene, theme };
     const { hass, config } = setup(s);
