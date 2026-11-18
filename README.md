@@ -10,6 +10,18 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/icon.svg" alt="Power Device Card" width="120"></p>
 
+<p align="center">
+  <a href="https://www.tp-link.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tplink.png" alt="TP-Link" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.shelly.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/shelly.png" alt="Shelly" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.home-assistant.io/integrations/zha/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/zha.png" alt="Zigbee Home Automation" width="48"></a>&nbsp;&nbsp;
+  <a href="https://csa-iot.org/all-solutions/matter/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/matter.png" alt="Matter" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.tuya.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tuya.png" alt="Tuya" width="48"></a>&nbsp;&nbsp;
+  <a href="https://github.com/rospogrigio/localtuya"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/localtuya.png" alt="Local Tuya" width="48"></a>&nbsp;&nbsp;
+  <a href="https://www.meross.com/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/meross_lan.png" alt="Meross" width="48"></a>&nbsp;&nbsp;
+  <a href="https://sonoff.tech/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/sonoff.png" alt="Sonoff" width="48"></a>&nbsp;&nbsp;
+  <a href="https://tasmota.github.io/"><img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tasmota.png" alt="Tasmota" width="48"></a>
+</p>
+
 An illustrated Lovelace card for **any appliance on a smart plug or a power meter**: an air fryer, a kettle, a washing machine with no integration of its own, a PC, a homelab rack… A power sensor is all it needs. It shows the power, whether the appliance runs and for how long, when its cycle ended, its last 24 hours as a curve, this cycle's and today's energy and cost, and the plug's switch.
 
 [![Open your Home Assistant instance and open a repository inside the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=juju35&repository=ha-power-device-card&category=plugin)
@@ -38,18 +50,23 @@ The cards share the look of the other ha-* cards (illustrated header with a stat
 - **Three tiles**: this cycle's energy (or the last cycle's), today's energy (the device's daily energy sensor, else worked out from the power since midnight), today's cost (with `price`, a number or a price sensor, in Home Assistant's currency), else the curve's peak
 - **Chips**: today's cycles, their average length, how long ago the last one ended
 - **The plug's switch**: a round button turns the appliance on and off (the plug's switch, found on its device, or `switch`; `show_controls: false` removes it)
-- **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (with a dark Home Assistant theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
+- **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, frost twinkles by a cooling fridge or freezer, coffee drips into the filter coffee maker's jug, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (with a dark Home Assistant theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
+- **Fridges and freezers**: their compressor runs in short cycles all day, so they never show as *done* — **cooling** (blue, frost twinkles while it runs) or *compressor off*, and the **duty cycle** over the last 24 hours (the share of the time the compressor ran) as the first tile. With a `temperature` sensor (and `freezer_temperature` for a fridge-freezer), the temperature is the big reading. **Alerts** (red): the door left open (`door`, a door sensor: the door is drawn open, the inside lit), **too warm** (above `max_temp`: 8 °C for a fridge, −12 °C for a freezer by default; −12 °C for a fridge-freezer's freezer), **no power** (the plug switched off, or no compressor cycle for 3 hours), **running non-stop** (the compressor running for 2 hours without a pause — a door ajar, a failing seal; `long_run` in minutes sets it)
+- **Filter coffee maker** (`model: filter`): **brewing** for its first 10 minutes (coffee drips into the jug, the jug fills; `brew_time` in minutes sets it), then **keeping warm** (the plate glows red, steam rises), and when it turns itself off (`auto_off`, 40 minutes after it started by default; `auto_off: false` hides it)
+- **Models** (`model`): a fridge is `single` (one door), `combi` (a fridge-freezer), `american` (side by side, with its dispenser) or `multi_door` (French door with two drawers); a freezer `drawers` (upright) or `chest`; a coffee maker `espresso` or `filter`. `auto` finds it from the name (*Frigo combiné*, *American fridge*, *Congélateur coffre*, *Cafetière filtre*…), else the first one
 - **Your own picture**: `image: /local/my-appliance.png` draws it in place of the illustration, standing in the room
 - `animations: false` stops the illustration (also when the system asks for reduced motion)
 
-The appliance's kind decides its illustration and its room; it is found from the name (in any of the card's languages: *Air fryer*, *Bouilloire*, *Waschmaschine*, *Lave-vaisselle*, *Gaming PC*, *Baie homelab*…), else set with `kind`:
+The appliance's kind decides its illustration and its room; it is found from the name (in any of the card's languages: *Air fryer*, *Bouilloire*, *Waschmaschine*, *Lave-vaisselle*, *Gaming PC*, *Baie homelab*, *Frigo*, *Gefriertruhe*…), else set with `kind`:
 
 | `kind` | Appliance | Room |
 |---|---|---|
 | `airfryer` | Air fryer | Kitchen |
 | `kettle` | Kettle | Kitchen |
 | `toaster` | Toaster | Kitchen |
-| `coffee` | Coffee maker | Kitchen |
+| `coffee` | Coffee maker (espresso or filter) | Kitchen |
+| `fridge` | Fridge (single door, fridge-freezer, American, French door) | Kitchen |
+| `freezer` | Freezer (upright with drawers, chest) | Kitchen |
 | `beer` | Beer tap (PerfectDraft…) | Kitchen |
 | `dishwasher` | Dishwasher | Kitchen |
 | `washer` | Washing machine | Laundry |
@@ -66,7 +83,7 @@ The appliance's kind decides its illustration and its room; it is found from the
 
 ### Power device mini
 
-`custom:power-device-mini-card` — The appliance on the same 90 px illustrated banner (two lines with `illustration: false`): the state as the status pill after the name, then the power while it runs or stands by, how long it has run or since it finished, and today's energy as chips. The **zoom** button (top right) opens the full card in place, a click anywhere else folds it back (`zoom: false` removes the button).
+`custom:power-device-mini-card` — The appliance on the same 90 px illustrated banner (two lines with `illustration: false`): the state as the status pill after the name (*Cooling*, *Door open*, *Brewing*…), then a fridge's or a freezer's temperature, or the power while it runs or stands by, how long it has run or since it finished, and today's energy as chips. The **zoom** button (top right) opens the full card in place, a click anywhere else folds it back (`zoom: false` removes the button).
 
 ## Supported integrations
 
@@ -74,13 +91,13 @@ Any integration giving a **power sensor** (a `sensor` with the `power` device cl
 
 | Integration | Plugs and meters |
 |---|---|
-| [Shelly](https://www.home-assistant.io/integrations/shelly/) (built in) | Shelly Plug S, Plus Plug S, Plug US, 1PM, Pro 1PM, EM, Pro 3EM |
-| [TP-Link Smart Home](https://www.home-assistant.io/integrations/tplink/) (built in) | Tapo P110, P115, Kasa KP115, HS110 |
-| [Zigbee Home Automation](https://www.home-assistant.io/integrations/zha/) (built in) | Zigbee plugs with metering (Nous A1Z, Ikea Inspelning, Aqara, Tuya…) |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/shelly.png" alt="" width="16"> [Shelly](https://www.home-assistant.io/integrations/shelly/) (built in) | Shelly Plug S, Plus Plug S, Plug US, 1PM, Pro 1PM, EM, Pro 3EM |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tplink.png" alt="" width="16"> [TP-Link Smart Home](https://www.home-assistant.io/integrations/tplink/) (built in) | Tapo P110, P115, Kasa KP115, HS110 |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/zha.png" alt="" width="16"> [Zigbee Home Automation](https://www.home-assistant.io/integrations/zha/) (built in) | Zigbee plugs with metering (Nous A1Z, Ikea Inspelning, Aqara, Tuya…) |
 | [Zigbee2MQTT](https://www.zigbee2mqtt.io/guide/usage/integrations/home_assistant.html) (MQTT) | The same Zigbee plugs |
-| [Matter](https://www.home-assistant.io/integrations/matter/) (built in) | Matter plugs with energy measurement |
-| [Tuya](https://www.home-assistant.io/integrations/tuya/) (built in) and [Local Tuya](https://github.com/rospogrigio/localtuya) (Marketplace) | Tuya and Smart Life plugs with power |
-| [Meross](https://github.com/krahabb/meross_lan) (Marketplace), [Sonoff](https://github.com/AlexxIT/SonoffLAN) (Marketplace), [Tasmota](https://www.home-assistant.io/integrations/tasmota/) (built in), [ESPHome](https://www.home-assistant.io/integrations/esphome/) (built in) | Their plugs and meters |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/matter.png" alt="" width="16"> [Matter](https://www.home-assistant.io/integrations/matter/) (built in) | Matter plugs with energy measurement |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tuya.png" alt="" width="16"> [Tuya](https://www.home-assistant.io/integrations/tuya/) (built in) and <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/localtuya.png" alt="" width="16"> [Local Tuya](https://github.com/rospogrigio/localtuya) (Marketplace) | Tuya and Smart Life plugs with power |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/meross_lan.png" alt="" width="16"> [Meross](https://github.com/krahabb/meross_lan) (Marketplace), <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/sonoff.png" alt="" width="16"> [Sonoff](https://github.com/AlexxIT/SonoffLAN) (Marketplace), <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/images/tasmota.png" alt="" width="16"> [Tasmota](https://www.home-assistant.io/integrations/tasmota/) (built in), [ESPHome](https://www.home-assistant.io/integrations/esphome/) (built in) | Their plugs and meters |
 | [Template](https://www.home-assistant.io/integrations/template/) and [Integration](https://www.home-assistant.io/integrations/integration/) (built in) | A power sensor of your own (a CT clamp, a calculated power) |
 
 When the card picks the wrong switch or energy sensor, set it with `switch` / `energy`, and open an issue with the plug's entities so that the discovery learns it.
@@ -137,6 +154,15 @@ entity: sensor.espresso_power
 kind: coffee
 image: /local/espresso.png
 
+# A fridge-freezer with its two thermometers and a door sensor
+type: custom:power-device-card
+entity: sensor.fridge_power
+kind: fridge
+model: combi
+temperature: sensor.fridge_temperature
+freezer_temperature: sensor.freezer_temperature
+door: binary_sensor.fridge_door
+
 # On a phone dashboard
 type: custom:power-device-mini-card
 entity: sensor.kettle_power
@@ -149,6 +175,7 @@ entity: sensor.kettle_power
 | `show_title` | boolean | `true` | Show the title |
 | `navigation_path` | string | | A tap on the header opens this dashboard path |
 | `kind` | string | `auto` | The appliance (see the table above); `auto` finds it from the name |
+| `model` | string | `auto` | Both: a fridge's, a freezer's or a coffee maker's look — `single`, `combi`, `american`, `multi_door`; `drawers`, `chest`; `espresso`, `filter`; `auto` finds it from the name |
 | `image` | string | | Your own picture of the appliance (`/local/…`), in place of the illustration |
 | `switch` | string | the plug's | The switch that turns the appliance on and off |
 | `energy` | string | the device's | An energy sensor; a daily one (*today*, *jour*, *heute*…) gives today's energy, else it is worked out from the power |
@@ -156,6 +183,13 @@ entity: sensor.kettle_power
 | `standby` | number | `1` | Watts at or above which it is on standby (below `threshold`) |
 | `cycle_gap` | number | by kind | YAML: minutes under the threshold that do not end a cycle |
 | `price` | number or string | | The price of a kWh, or a sensor with it, for today's cost |
+| `temperature` | string | | Both: a fridge's or a freezer's temperature sensor, shown big; an alert above `max_temp` |
+| `freezer_temperature` | string | | Both: a fridge-freezer's second sensor, for its freezer (an alert above −12 °C) |
+| `max_temp` | number | `8` (fridge), `-12` (freezer) | Both: the temperature above which a too-warm alert shows |
+| `door` | string | | Both: a door sensor (`binary_sensor`): an alert while the door stays open |
+| `long_run` | number | `120` | YAML: minutes a fridge's compressor may run without a pause before a *running non-stop* alert |
+| `brew_time` | number | `10` | YAML: minutes a filter coffee maker brews before it keeps warm |
+| `auto_off` | number or `false` | `40` | YAML: minutes after which a filter coffee maker turns itself off (`false`: not shown) |
 | `illustration` | boolean | `true` | Both: the illustrated header (`false`: the classic header) |
 | `illustration_theme` | string | `auto` | Both: `auto` (follows the Home Assistant theme: night with a dark theme, day with a light theme), `day` or `night` |
 | `show_graph` | boolean | `true` | The 24-hour curve |
@@ -181,12 +215,32 @@ entity: sensor.kettle_power
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-pc-night.png" alt="By night" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-compact.png" alt="Without the curve" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-pc-night-dark.png" alt="By night, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-compact-dark.png" alt="Without the curve, dark" width="400"> |
 
-**Animations**: while the appliance runs, the air fryer steams, the washing machine's drum turns, the PC's fans spin and the rack's LEDs blink (still with `animations: false`, or when the system asks for reduced motion).
+| Fridge, cooling | Fridge-freezer, compressor off | American fridge | French door, door open |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge.png" alt="Fridge cooling" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-combi.png" alt="Fridge-freezer, compressor off" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-american.png" alt="American fridge" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-door.png" alt="French door fridge, door open" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-dark.png" alt="Fridge cooling, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-combi-dark.png" alt="Fridge-freezer, compressor off, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-american-dark.png" alt="American fridge, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-door-dark.png" alt="French door fridge, door open, dark" width="400"> |
+
+| Chest freezer | Upright freezer | Filter coffee, brewing | Filter coffee, keeping warm |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest.png" alt="Chest freezer" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-drawers.png" alt="Upright freezer" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter.png" alt="Filter coffee maker brewing" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm.png" alt="Filter coffee maker keeping warm" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest-dark.png" alt="Chest freezer, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-drawers-dark.png" alt="Upright freezer, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-dark.png" alt="Filter coffee maker brewing, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm-dark.png" alt="Filter coffee maker keeping warm, dark" width="400"> |
+
+**Animations**: while the appliance runs, the air fryer steams, the washing machine's drum turns, the PC's fans spin and the rack's LEDs blink; frost twinkles by a cooling fridge or freezer, an open fridge door's light and alert halo blink, coffee drips into the filter coffee maker's jug, then its plate glows while it keeps warm (still with `animations: false`, or when the system asks for reduced motion).
 
 | Air fryer | Washing machine | Desktop PC | Homelab rack |
 |---|---|---|---|
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-airfryer.gif" alt="Air fryer animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-washer.gif" alt="Washing machine animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-pc.gif" alt="PC animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-homelab.gif" alt="Rack animation" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-airfryer-dark.gif" alt="Air fryer animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-washer-dark.gif" alt="Washing machine animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-pc-dark.gif" alt="PC animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-homelab-dark.gif" alt="Rack animation, dark" width="400"> |
+
+| Fridge, cooling | Fridge, door open | Chest freezer, cooling |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge.gif" alt="Fridge animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-door.gif" alt="Fridge door open animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest.gif" alt="Chest freezer animation" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-dark.gif" alt="Fridge animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-fridge-door-dark.gif" alt="Fridge door open animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest-dark.gif" alt="Chest freezer animation, dark" width="400"> |
+
+| Filter coffee, brewing | Filter coffee, keeping warm |
+|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter.gif" alt="Filter coffee brewing animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm.gif" alt="Filter coffee keeping warm animation" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-dark.gif" alt="Filter coffee brewing animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm-dark.gif" alt="Filter coffee keeping warm animation, dark" width="400"> |
 
 ### Power device mini
 
@@ -194,6 +248,11 @@ entity: sensor.kettle_power
 |---|---|---|
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-airfryer.png" alt="Mini, running" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-washer.png" alt="Mini, done" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-zoom.png" alt="Mini, zoomed in" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-airfryer-dark.png" alt="Mini, running, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-washer-dark.png" alt="Mini, done, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-zoom-dark.png" alt="Mini, zoomed in, dark" width="400"> |
+
+| Fridge, door open | Chest freezer | Filter coffee, brewing |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door.png" alt="Mini, fridge door open" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest.png" alt="Mini, chest freezer" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter.png" alt="Mini, filter coffee brewing" width="320"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door-dark.png" alt="Mini, fridge door open, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest-dark.png" alt="Mini, chest freezer, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter-dark.png" alt="Mini, filter coffee brewing, dark" width="320"> |
 
 ## How it works
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 - 2026-11-18
+
+### Features
+- **Fridges** (`kind: fridge`), in four models (`model: single | combi | american | multi_door`): the compressor's cycles from the power — **cooling** (blue, frost twinkles while it runs) or *compressor off*, never *done* — and its **duty cycle** over the last 24 hours as the first tile.
+- **Freezers** (`kind: freezer`), upright with drawers or a chest (`model: drawers | chest`), with the same cycles and duty cycle.
+- **Temperatures and alerts** for fridges and freezers: a `temperature` sensor (and `freezer_temperature` for a fridge-freezer) shown big; red alerts when the door stays open (`door` sensor; the door is drawn open, the inside lit, the halo blinks), when it gets too warm (`max_temp`, 8 °C for a fridge, −12 °C for a freezer), when the plug gives no power (switched off, or no compressor cycle for 3 hours) and when the compressor runs non-stop for 2 hours (`long_run`).
+- **Filter coffee maker** (`kind: coffee`, `model: filter`): *brewing* (coffee drips into the jug, the jug fills), then *keeping warm* (the plate glows red), and when it turns itself off (`brew_time`, `auto_off`).
+- `model`, `temperature`, `freezer_temperature`, `max_temp` and `door` in the visual editor of both cards; the kinds and models found from the name in every language.
+- Screenshots and animations (light and dark) of every fridge model, both freezers and the filter coffee maker.
+
 ## 1.0.2 - 2026-11-18
 
 ### Fixes
