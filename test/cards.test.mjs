@@ -278,9 +278,12 @@ test("fridge: cooling or resting, never done; its temperature big; the duty cycl
   assert.match(html, /<span class="bpt">Cooling<\/span>/);
   assert.match(html, /<span class="big">4<\/span><span class="u">°C · −18 °C<\/span>|<span class="big">4<\/span><span class="u">°C · -18 °C<\/span>/);
   assert.match(html, /Duty cycle/);
-  assert.match(html, /This cycle/, "a cooling fridge's cycle is under way");
   assert.ok(m.duty > 0.3 && m.duty < 0.45, String(m.duty));
   assert.match(html, /class="lvl-cooling|lvl-cooling/);
+  const cool = make("power-device-card", FRIDGE, fridgeHass());
+  await settle();
+  cool._render();
+  assert.match(cool.shadowRoot.innerHTML, /This cycle/, "without a price, the cycle under way is the third tile");
   const rest = make("power-device-card", FRIDGE, fridgeHass({ watts: "1.1", on: false }));
   await settle();
   rest._render();
