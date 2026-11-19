@@ -88,7 +88,7 @@ export const load = () => {
   const code = [read("shared"), ...cards.map((c) => `{\n${read(c)}}\n`)].join("\n");
   return vm.runInContext(
     `${code}
-    ({ RcCard, RC_I18N, PD_I18N, PD_KINDS, PD_MODELS, rcLang, pdFind, pdDevices, pdAnalyse, pdPoints, pdKindOf, pdModelOf, customElements, window,
+    ({ RcCard, RC_I18N, PD_I18N, PD_KINDS, PD_MODELS, rcLang, Date, pdFind, pdDevices, pdAnalyse, pdPoints, pdKindOf, pdModelOf, customElements, window,
        cards: Object.fromEntries(${JSON.stringify([...cards, "power-device-mini-card"])}.map((t) => [t, customElements.get(t)])) })`,
     ctx,
   );

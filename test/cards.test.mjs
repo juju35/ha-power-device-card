@@ -134,6 +134,25 @@ test("full card: running, its duration, the curve, three tiles and the plug's sw
   assert.deepEqual(json(hass.calls.at(-1)), ["switch", "turn_off", { entity_id: "switch.fryer" }]);
 });
 
+test("the curve is drawn to the minute, so an update within the same minute leaves it unchanged (#8)", async () => {
+  const card = make("power-device-card", FRYER, makeHass({ history: HISTORY.slice(1) }));
+  await settle();
+  const m = card._items;
+  const realNow = pd.Date.now;
+  try {
+    const start = Math.floor(realNow() / 60000) * 60000;
+    pd.Date.now = () => start + 1000;
+    const graph = card._graph(m);
+    assert.match(graph, /class="cv"/);
+    pd.Date.now = () => start + 59000;
+    assert.equal(card._graph(m), graph, "same curve within the minute");
+    pd.Date.now = () => start + 61000;
+    assert.notEqual(card._graph(m), graph, "moved on the next minute");
+  } finally {
+    pd.Date.now = realNow;
+  }
+});
+
 test("states: done after a cycle, standby, idle, offline; a switched-off plug draws nothing", async () => {
   const done = make("power-device-card", { entity: "sensor.washer_power" }, makeHass({ history: [[-120, 0.5], [-71, 2000], [-6, 0.8]] }));
   await settle();
