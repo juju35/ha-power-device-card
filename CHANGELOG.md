@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 - 2026-11-19
+
+### Fixes
+- The page no longer jumps by a few pixels in Firefox when the card, scrolled above the viewport, updates with its 24-hour curve shown (#8): the curve is drawn to the minute, so the card is no longer rebuilt on every update, and a redraw keeps the card's height until the new content has settled.
+
 ## 1.1.0 - 2026-11-18
 
 ### Features

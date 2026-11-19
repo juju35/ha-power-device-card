@@ -673,6 +673,21 @@ class PowerDeviceCard extends RcCard {
       </div>`;
   }
 
+  // A redraw replaces the whole shadow root: the card keeps its height until the new content has settled (two
+  // frames), so a browser does not shift the page when the card is above the viewport (Firefox, issue #8).
+  _holdHeight() {
+    const h = this.offsetHeight;
+    if (!h || typeof requestAnimationFrame !== "function") return;
+    cancelAnimationFrame(this._holdFrame);
+    this.style.minHeight = `${h}px`;
+    this._holdFrame = requestAnimationFrame(() => {
+      this._holdFrame = requestAnimationFrame(() => {
+        this._holdFrame = undefined;
+        this.style.minHeight = "";
+      });
+    });
+  }
+
   _fitPill() {
     for (const row of this.shadowRoot?.querySelectorAll?.(".trow") || []) {
       const banner = row.closest(".banner");
@@ -705,6 +720,9 @@ class PowerDeviceCard extends RcCard {
     this._resize?.disconnect();
     this._fitWidth = undefined;
     if (this._fitFrame) cancelAnimationFrame(this._fitFrame);
+    if (this._holdFrame) cancelAnimationFrame(this._holdFrame);
+    this._holdFrame = undefined;
+    this.style.minHeight = "";
     clearInterval(this._tick);
     this._tick = undefined;
   }
@@ -712,10 +730,11 @@ class PowerDeviceCard extends RcCard {
   // The 24-hour curve: the power as steps (a plug reports on change), its area, the running threshold dashed.
   _graph(m) {
     if (this._config.show_graph === false || !m.series?.length) return "";
-    const now = Date.now();
+    // Drawn to the minute: the curve (part of the redraw signature) only moves on once a minute, not on every update.
+    const now = Math.floor(Date.now() / 60000) * 60000;
     const from = now - PD_DAY_MS;
     const top = Math.max(m.peak || 0, m.threshold * 2, 1) * 1.12;
-    const x = (t) => (((Math.max(t, from) - from) / PD_DAY_MS) * 300).toFixed(1);
+    const x = (t) => (((Math.min(Math.max(t, from), now) - from) / PD_DAY_MS) * 300).toFixed(1);
     const y = (w) => (58 - (Math.max(0, w) / top) * 54).toFixed(1);
     let d = "";
     for (const [i, p] of m.series.entries()) {
@@ -780,6 +799,7 @@ class PowerDeviceCard extends RcCard {
     const graph = this._graph(m);
     const parts = [m.none, m.state, m.alert, m.phase, m.model, m.temp?.v, m.temp2?.v, this._label(m), m.kind, m.name, m.sub, m.watts, m.raw, tiles, this._chips(m), graph, m.switchId, m.switchOn, banner, night, this._dark(), minute];
     if (!this._changed(parts)) return;
+    this._holdHeight();
     const pill = m.none ? "" : this._label(m);
     const sub = m.sub ? `<div class="subt">${rcEsc(m.sub)}</div>` : "";
     const head = banner
@@ -1025,6 +1045,7 @@ class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-mini-car
     const night = banner && this._night();
     const minute = Math.floor(Date.now() / 60000);
     if (!this._changed(["mini", m.state, m.alert, m.phase, m.model, m.temp?.v, m.watts, m.today, m.kind, m.name, m.sub, banner, night, this._dark(), minute])) return;
+    this._holdHeight();
     const chip = (text, dim) => `<button class="r pill${dim ? " dim" : ""}" data-id="${rcEsc(m.id || "")}" title="${rcEsc(text)}"><span>${rcEsc(text)}</span></button>`;
     const power = m.temp
       ? `${this._fmt(m.temp.v, Math.abs(m.temp.v) < 10 && m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}`
