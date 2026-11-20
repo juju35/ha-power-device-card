@@ -82,7 +82,7 @@ const browser = await launch();
 for (const theme of ["light", "dark"]) {
   const dark = theme === "dark";
   const suffix = dark ? "-dark" : "";
-  for (const scene of ["airfryer", "washer-running", "pc", "homelab", "fridge", "fridge-door", "freezer-chest", "coffee-filter", "coffee-filter-warm"]) {
+  for (const scene of ["airfryer", "washer-running", "pc", "homelab", "fridge", "fridge-door", "freezer-chest", "coffee-filter", "coffee-filter-warm", "radiator", "radiator-towel", "radiator-climate"]) {
     const name = `pd-${scene.replace("-running", "")}`;
     const s = { scene, theme };
     const { hass, config } = setup(s);

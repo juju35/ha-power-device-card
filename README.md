@@ -52,12 +52,13 @@ The cards share the look of the other ha-* cards (illustrated header with a stat
 - **The plug's switch**: a round button turns the appliance on and off (the plug's switch, found on its device, or `switch`; `show_controls: false` removes it)
 - **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, frost twinkles by a cooling fridge or freezer, coffee drips into the filter coffee maker's jug, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (with a dark Home Assistant theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
 - **Fridges and freezers**: their compressor runs in short cycles all day, so they never show as *done* — **cooling** (blue, frost twinkles while it runs) or *compressor off*, and the **duty cycle** over the last 24 hours (the share of the time the compressor ran) as the first tile. With a `temperature` sensor (and `freezer_temperature` for a fridge-freezer), the temperature is the big reading. **Alerts** (red): the door left open (`door`, a door sensor: the door is drawn open, the inside lit), **too warm** (above `max_temp`: 8 °C for a fridge, −12 °C for a freezer by default; −12 °C for a fridge-freezer's freezer), **no power** (the plug switched off, or no compressor cycle for 3 hours), **running non-stop** (the compressor running for 2 hours without a pause — a door ajar, a failing seal; `long_run` in minutes sets it)
+- **Radiators** (electric radiators, oil-filled radiators, towel rails): their thermostat heats in cycles all day, so they never show as *done* — **heating** (orange, the columns glow from the bottom up and heat rises) or **at temperature** (green), and the **duty cycle** over the last 24 hours as the first tile. With a `temperature` sensor the room's temperature is the big reading, to one decimal. **With its thermostat or pilot wire** (`climate`: a `climate` entity, or a pilot wire `select` as in [ha-heating-card](https://github.com/juju35/ha-heating-card)): the room's temperature and its target (*18.4 °C → 19°*), the order as a chip (*Comfort*, *Eco*, *Frost protection*, *Off*) and the radiator's glow in its colour (orange comfort, green eco, blue frost protection). **Alerts** (red): **window open** while it heats (`window`, a window sensor), **too cold** (below `min_temp`)
 - **Filter coffee maker** (`model: filter`): **brewing** for its first 10 minutes (coffee drips into the jug, the jug fills; `brew_time` in minutes sets it), then **keeping warm** (the plate glows red, steam rises), and when it turns itself off (`auto_off`, 40 minutes after it started by default; `auto_off: false` hides it)
-- **Models** (`model`): a fridge is `single` (one door), `combi` (a fridge-freezer), `american` (side by side, with its dispenser) or `multi_door` (French door with two drawers); a freezer `drawers` (upright) or `chest`; a coffee maker `espresso` or `filter`. `auto` finds it from the name (*Frigo combiné*, *American fridge*, *Congélateur coffre*, *Cafetière filtre*…), else the first one
+- **Models** (`model`): a fridge is `single` (one door), `combi` (a fridge-freezer), `american` (side by side, with its dispenser) or `multi_door` (French door with two drawers); a freezer `drawers` (upright) or `chest`; a coffee maker `espresso` or `filter`; a radiator `column`, `oil` (oil-filled, on its casters) or `towel` (a towel rail). `auto` finds it from the name (*Frigo combiné*, *American fridge*, *Congélateur coffre*, *Cafetière filtre*, *Bain d'huile*, *Sèche-serviettes*…), else the first one
 - **Your own picture**: `image: /local/my-appliance.png` draws it in place of the illustration, standing in the room
 - `animations: false` stops the illustration (also when the system asks for reduced motion)
 
-The appliance's kind decides its illustration and its room; it is found from the name (in any of the card's languages: *Air fryer*, *Bouilloire*, *Waschmaschine*, *Lave-vaisselle*, *Gaming PC*, *Baie homelab*, *Frigo*, *Gefriertruhe*…), else set with `kind`:
+The appliance's kind decides its illustration and its room; it is found from the name (in any of the card's languages: *Air fryer*, *Bouilloire*, *Waschmaschine*, *Lave-vaisselle*, *Gaming PC*, *Baie homelab*, *Frigo*, *Gefriertruhe*, *Radiateur*…), else set with `kind`:
 
 | `kind` | Appliance | Room |
 |---|---|---|
@@ -78,12 +79,13 @@ The appliance's kind decides its illustration and its room; it is found from the
 | `monitor` | Computer screens | Desk |
 | `pc` | Desktop PC | Desk |
 | `piano` | Digital piano | Living room |
+| `radiator` | Radiator (column, oil-filled, towel rail) | Living room |
 | `multiplug` | Power strip | Living room |
 | `plug` | Smart plug (any other appliance) | Wall |
 
 ### Power device mini
 
-`custom:power-device-mini-card` — The appliance on the same 90 px illustrated banner (two lines with `illustration: false`): the state as the status pill after the name (*Cooling*, *Door open*, *Brewing*…), then a fridge's or a freezer's temperature, or the power while it runs or stands by, how long it has run or since it finished, and today's energy as chips. The **zoom** button (top right) opens the full card in place, a click anywhere else folds it back (`zoom: false` removes the button).
+`custom:power-device-mini-card` — The appliance on the same 90 px illustrated banner (two lines with `illustration: false`): the state as the status pill after the name (*Cooling*, *Door open*, *Brewing*, *Heating*…), then a fridge's, a freezer's or a radiator's temperature (and its target), or the power while it runs or stands by, how long it has run or since it finished, and today's energy as chips. The **zoom** button (top right) opens the full card in place, a click anywhere else folds it back (`zoom: false` removes the button).
 
 ## Supported integrations
 
@@ -163,6 +165,13 @@ temperature: sensor.fridge_temperature
 freezer_temperature: sensor.freezer_temperature
 door: binary_sensor.fridge_door
 
+# A radiator with its pilot wire (as in ha-heating-card) and a window sensor
+type: custom:power-device-card
+entity: sensor.office_radiator_power
+kind: radiator
+climate: select.office_radiator_pilot_wire
+window: binary_sensor.office_window
+
 # On a phone dashboard
 type: custom:power-device-mini-card
 entity: sensor.kettle_power
@@ -175,7 +184,7 @@ entity: sensor.kettle_power
 | `show_title` | boolean | `true` | Show the title |
 | `navigation_path` | string | | A tap on the header opens this dashboard path |
 | `kind` | string | `auto` | The appliance (see the table above); `auto` finds it from the name |
-| `model` | string | `auto` | Both: a fridge's, a freezer's or a coffee maker's look — `single`, `combi`, `american`, `multi_door`; `drawers`, `chest`; `espresso`, `filter`; `auto` finds it from the name |
+| `model` | string | `auto` | Both: a fridge's, a freezer's, a coffee maker's or a radiator's look — `single`, `combi`, `american`, `multi_door`; `drawers`, `chest`; `espresso`, `filter`; `column`, `oil`, `towel`; `auto` finds it from the name |
 | `image` | string | | Your own picture of the appliance (`/local/…`), in place of the illustration |
 | `switch` | string | the plug's | The switch that turns the appliance on and off |
 | `energy` | string | the device's | An energy sensor; a daily one (*today*, *jour*, *heute*…) gives today's energy, else it is worked out from the power |
@@ -183,10 +192,13 @@ entity: sensor.kettle_power
 | `standby` | number | `1` | Watts at or above which it is on standby (below `threshold`) |
 | `cycle_gap` | number | by kind | YAML: minutes under the threshold that do not end a cycle |
 | `price` | number or string | | The price of a kWh, or a sensor with it, for today's cost |
-| `temperature` | string | | Both: a fridge's or a freezer's temperature sensor, shown big; an alert above `max_temp` |
+| `temperature` | string | | Both: a fridge's, a freezer's or a radiator's room temperature sensor, shown big; an alert above `max_temp` (below `min_temp` for a radiator) |
 | `freezer_temperature` | string | | Both: a fridge-freezer's second sensor, for its freezer (an alert above −12 °C) |
 | `max_temp` | number | `8` (fridge), `-12` (freezer) | Both: the temperature above which a too-warm alert shows |
 | `door` | string | | Both: a door sensor (`binary_sensor`): an alert while the door stays open |
+| `climate` | string | | Both: a radiator's thermostat (`climate`) or pilot wire (`select`): the room's temperature, its target and its order |
+| `window` | string | | Both: a window sensor (`binary_sensor`): an alert while the radiator heats with the window open |
+| `min_temp` | number | | Both: the room temperature below which a radiator shows a too-cold alert |
 | `long_run` | number | `120` | YAML: minutes a fridge's compressor may run without a pause before a *running non-stop* alert |
 | `brew_time` | number | `10` | YAML: minutes a filter coffee maker brews before it keeps warm |
 | `auto_off` | number or `false` | `40` | YAML: minutes after which a filter coffee maker turns itself off (`false`: not shown) |
@@ -225,7 +237,12 @@ entity: sensor.kettle_power
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest.png" alt="Chest freezer" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-drawers.png" alt="Upright freezer" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter.png" alt="Filter coffee maker brewing" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm.png" alt="Filter coffee maker keeping warm" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-chest-dark.png" alt="Chest freezer, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-freezer-drawers-dark.png" alt="Upright freezer, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-dark.png" alt="Filter coffee maker brewing, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm-dark.png" alt="Filter coffee maker keeping warm, dark" width="400"> |
 
-**Animations**: while the appliance runs, the air fryer steams, the washing machine's drum turns, the PC's fans spin and the rack's LEDs blink; frost twinkles by a cooling fridge or freezer, an open fridge door's light and alert halo blink, coffee drips into the filter coffee maker's jug, then its plate glows while it keeps warm (still with `animations: false`, or when the system asks for reduced motion).
+| Radiator, heating | Oil-filled, at temperature | Towel rail | Pilot wire, eco | Window open |
+|---|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator.png" alt="Radiator heating" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-oil.png" alt="Oil-filled radiator at temperature" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-towel.png" alt="Towel rail heating" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-climate.png" alt="Radiator on its pilot wire, eco" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-window.png" alt="Radiator, window open" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-dark.png" alt="Radiator heating, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-oil-dark.png" alt="Oil-filled radiator at temperature, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-towel-dark.png" alt="Towel rail heating, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-climate-dark.png" alt="Radiator on its pilot wire, eco, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-window-dark.png" alt="Radiator, window open, dark" width="400"> |
+
+**Animations**: while the appliance runs, the air fryer steams, the washing machine's drum turns, the PC's fans spin and the rack's LEDs blink; frost twinkles by a cooling fridge or freezer, an open fridge door's light and alert halo blink, coffee drips into the filter coffee maker's jug, then its plate glows while it keeps warm, a heating radiator's columns glow and heat rises from it (still with `animations: false`, or when the system asks for reduced motion).
 
 | Air fryer | Washing machine | Desktop PC | Homelab rack |
 |---|---|---|---|
@@ -242,6 +259,11 @@ entity: sensor.kettle_power
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter.gif" alt="Filter coffee brewing animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm.gif" alt="Filter coffee keeping warm animation" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-dark.gif" alt="Filter coffee brewing animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-coffee-filter-warm-dark.gif" alt="Filter coffee keeping warm animation, dark" width="400"> |
 
+| Radiator, heating | Towel rail, heating | Pilot wire, eco |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator.gif" alt="Radiator animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-towel.gif" alt="Towel rail animation" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-climate.gif" alt="Radiator on its pilot wire animation" width="400"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-dark.gif" alt="Radiator animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-towel-dark.gif" alt="Towel rail animation, dark" width="400"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-radiator-climate-dark.gif" alt="Radiator on its pilot wire animation, dark" width="400"> |
+
 ### Power device mini
 
 | Running | Done | Zoomed in |
@@ -249,10 +271,10 @@ entity: sensor.kettle_power
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-airfryer.png" alt="Mini, running" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-washer.png" alt="Mini, done" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-zoom.png" alt="Mini, zoomed in" width="400"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-airfryer-dark.png" alt="Mini, running, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-washer-dark.png" alt="Mini, done, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-zoom-dark.png" alt="Mini, zoomed in, dark" width="400"> |
 
-| Fridge, door open | Chest freezer | Filter coffee, brewing |
-|---|---|---|
-| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door.png" alt="Mini, fridge door open" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest.png" alt="Mini, chest freezer" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter.png" alt="Mini, filter coffee brewing" width="320"> |
-| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door-dark.png" alt="Mini, fridge door open, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest-dark.png" alt="Mini, chest freezer, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter-dark.png" alt="Mini, filter coffee brewing, dark" width="320"> |
+| Fridge, door open | Chest freezer | Filter coffee, brewing | Radiator, pilot wire |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door.png" alt="Mini, fridge door open" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest.png" alt="Mini, chest freezer" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter.png" alt="Mini, filter coffee brewing" width="320">  <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-radiator-climate.png" alt="Mini, radiator on its pilot wire" width="320"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door-dark.png" alt="Mini, fridge door open, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest-dark.png" alt="Mini, chest freezer, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter-dark.png" alt="Mini, filter coffee brewing, dark" width="320">  <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-radiator-climate-dark.png" alt="Mini, radiator on its pilot wire, dark" width="320"> |
 
 ## How it works
 

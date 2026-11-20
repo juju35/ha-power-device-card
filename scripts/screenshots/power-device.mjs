@@ -20,6 +20,11 @@ const scenes = [
   "freezer-drawers",
   "coffee-filter",
   "coffee-filter-warm",
+  "radiator",
+  "radiator-oil",
+  "radiator-towel",
+  "radiator-climate",
+  "radiator-window",
 ].flatMap((scene) => still(scene, { scene }));
 await shoot({
   prefix: "pd",
@@ -37,6 +42,7 @@ await shoot({
     ...still("fridge-door", { scene: "fridge-door" }),
     ...still("freezer-chest", { scene: "freezer-chest" }),
     ...still("coffee-filter", { scene: "coffee-filter" }),
+    ...still("radiator-climate", { scene: "radiator-climate" }),
     ...still("zoom", { scene: "airfryer", open: ".zoom" }),
   ],
   setup,
