@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 - 2026-11-20
+
+### Fixes
+- The mini card's detail button keeps its frosted glass on older Safari / iOS (`-webkit-backdrop-filter`).
+
+### Performance
+- About 410 lines of the shared base that this card never used (room discovery, toggle and rooms-panel cards, their editor fields and styles) are gone: the bundle shrinks from 306 KB to 285 KB (167 KB to 146 KB with the translations split).
+
 ## 1.2.0 - 2026-11-20
 
 ### Features
