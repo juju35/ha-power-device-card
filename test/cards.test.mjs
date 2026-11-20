@@ -464,3 +464,16 @@ test("radiator mini card: the room's temperature and its target as a chip", asyn
   card._render();
   assert.match(card.shadowRoot.innerHTML, /18\.4 °C → 19°/);
 });
+
+test("radiator: a target with no room temperature still shows", async () => {
+  const h = radiatorHass({ watts: "980" }, { "climate.office": st("climate.office", "heat", { temperature: 19.5, preset_mode: "comfort" }) });
+  const card = make("power-device-card", { ...RADIATOR, climate: "climate.office" }, h);
+  await settle();
+  card._render();
+  assert.equal(card._items.temp, null);
+  assert.match(card.shadowRoot.innerHTML, /<span>Comfort · 19\.5°<\/span>/);
+  const mini = make("power-device-mini-card", { ...RADIATOR, climate: "climate.office" }, h);
+  await settle();
+  mini._render();
+  assert.match(mini.shadowRoot.innerHTML, /→ 19\.5°/);
+});

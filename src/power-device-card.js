@@ -880,7 +880,9 @@ class PowerDeviceCard extends RcCard {
     const now = Date.now();
     const out = [];
     if (m.state === "offline") return "";
-    if (m.mode) out.push([PD_SVG.thermo, this._t(`pw_${m.mode}`)]);
+    // The order, with the target when no room temperature shows it beside the big reading.
+    const aim = m.target != null && !m.temp ? ` · ${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` : "";
+    if (m.mode) out.push([PD_SVG.thermo, `${this._t(`pw_${m.mode}`)}${aim}`]);
     if (m.phase && m.offIn > 0) out.push([PD_SVG.clock, this._t("auto_off_in", { d: pdDur(m.offIn) })]);
     if (m.cycles) out.push([PD_SVG.cycle, this._tn("cycles", m.cycles)]);
     if (m.avg) out.push([PD_SVG.clock, this._t("avg_cycle", { d: pdDur(m.avg) })]);
@@ -1157,7 +1159,9 @@ class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-mini-car
         : null;
     const line = ["running", "done", "cooling", "heating", "holding", "alert"].includes(m.state) || m.cold ? this._line(m) : null;
     const today = m.today != null ? `${this._t("t_today")} ${this._kwh(m.today)} kWh` : null;
-    const rest = [power, line, today].filter(Boolean);
+    // A radiator's target with no room temperature to show it beside.
+    const aim = m.target != null && !m.temp ? this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` }) : null;
+    const rest = [power, aim, line, today].filter(Boolean);
     if (banner) {
       const c = this._config;
       this.shadowRoot.innerHTML = `<style>${RC_BASE_STYLES}${this.constructor.styles}</style>
