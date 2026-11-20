@@ -1350,7 +1350,7 @@ const RC_I18N = {
 // The kinds of appliance, each with its illustration; found from the name (any of the card's languages), else `plug`.
 // Most specific first: a dishwasher is not a washer, a phone charger is not a laptop.
 const PD_KIND_NAMES = [
-  ["radiator", /radiat|convect|chauffage|heater|heizk[oö]rper|heizl[uü]fter|bain.?d.?huile|[oö]lradiator|s[eè]che.?serviette|towel|handtuch|toallero|scaldasalviette|toalheiro|radiador|calorifer|grzejnik|kaloryfer|радиатор|радіатор|радијатор|рушникосуш|полотенцесуш|fűtőtest|radiátor|καλοριφέρ|θερμαντ/],
+  ["radiator", /radiat|convecteur|convector|chauffage|(?<!water.?|pool.?|aquarium.?)heater|heizk[oö]rper|heizl[uü]fter|bain.?d.?huile|[oö]lradiator|s[eè]che.?serviette|towel|handtuch|toallero|scaldasalviette|toalheiro|radiador|calorifer|grzejnik|kaloryfer|радиатор|радіатор|радијатор|рушникосуш|полотенцесуш|fűtőtest|radiátor|καλοριφέρ|θερμαντ/],
   ["airfryer", /air.?fr[iy]|friteuse|fritteuse|freidora|friggitrice|frytkownic|fritadeira|friteuz|frituregryde|fritös|фритюр|olajsüt|fritéz|cvrtnik|frituras|φριτέζα/],
   ["kettle", /kettle|bouilloire|wasserkocher|hervidor|bollitore|waterkoker|czajnik|chaleira|fierb[aă]tor|elkedel|vattenkokare|чайник|vízforral|kanvica|rychlovarn|grelnik|tējkanna|βραστήρ/],
   ["toaster", /toast|grille.?pain|tostad|tostapane|torradeira|pr[aă]jitor|brødrister|brödrost|тостер|kenyérpirít|hriankova|topinkova|opeka|φρυγανιέρ/],

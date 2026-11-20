@@ -82,6 +82,9 @@ test("kinds from the name, in several languages; a dishwasher is not a washer", 
     "Towel dryer": "radiator",
     "Bain d'huile": "radiator",
     Heizkörper: "radiator",
+    "Water heater": "plug",
+    "Chauffe-eau": "plug",
+    "Four à convection": "plug",
   };
   for (const [name, kind] of Object.entries(cases)) assert.equal(pd.pdKindOf(name), kind, name);
   for (const k of pd.PD_KINDS) assert.ok(pd.PD_I18N.en[`k_${k}`], `k_${k}`);
@@ -426,6 +429,7 @@ test("radiator with its thermostat or pilot wire: target, order and its colour; 
   assert.match(html, /<span class="big">18\.4<\/span><span class="u">°C → 19°<\/span>/);
   assert.match(html, /<span>Eco<\/span>/);
   assert.match(html, /#2e9d5a/, "the eco order glows green");
+  assert.doesNotMatch(html, /<stop offset="0" stop-color="#e8590c" stop-opacity=".3"\/>/, "its halo too");
   const off = make("power-device-card", { ...RADIATOR, climate: "climate.office" }, radiatorHass({ hvac: "off", watts: "0", on: false }));
   assert.equal(off._items.mode, "off");
   const pilot = make("power-device-card", { ...RADIATOR, climate: "select.office_pilot_wire" }, radiatorHass());
@@ -441,6 +445,8 @@ test("radiator with its thermostat or pilot wire: target, order and its colour; 
   const cold = make("power-device-card", { ...RADIATOR, temperature: "sensor.room_temp", min_temp: 12 }, radiatorHass({ temp: "10.5" }));
   assert.equal(cold._items.alert, "cold");
   assert.match(cold.shadowRoot.innerHTML, /Below 12 °C/);
+  const half = make("power-device-card", { ...RADIATOR, temperature: "sensor.room_temp", min_temp: 12.5 }, radiatorHass({ temp: "10.5" }));
+  assert.match(half.shadowRoot.innerHTML, /Below 12\.5 °C/);
 });
 
 test("towel rail: drawn and named as one", async () => {

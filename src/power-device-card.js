@@ -399,7 +399,7 @@ const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, 
 // The illustration: the room, a halo in the state's colour while it runs, the appliance (or `image`, the user's own
 // picture, fitted in a 64 px box on the ground).
 const pdScene = ({ kind, image, state, night, uid, animate, dx = 0, model, door, phase, temp, hot, cooling }) => {
-  const accent = PD_ACCENTS[state];
+  const accent = (kind === "radiator" && state === "heating" && PD_PILOT_COLORS[phase]) || PD_ACCENTS[state];
   const on = state === "running" || state === "cooling" || state === "heating" || !!cooling;
   const standby = state === "standby";
   const moving = animate && (on || !!door);
@@ -652,7 +652,7 @@ class PowerDeviceCard extends RcCard {
     const cl = c.climate ? h.states[c.climate] : null;
     const sensor = c.temperature ? h.states[c.temperature] : null;
     const tv = sensor && !rcUnavailable(sensor) ? pdNum(sensor) : num(cl?.attributes.current_temperature);
-    const t1 = tv == null ? null : { v: tv, unit: sensor?.attributes.unit_of_measurement || "°C" };
+    const t1 = tv == null ? null : { v: tv, unit: sensor?.attributes.unit_of_measurement || h.config?.unit_system?.temperature || "°C" };
     const target = num(cl?.attributes.temperature);
     // The order: a pilot wire select's option, else the thermostat's preset or mode.
     const select = cl && !c.climate.startsWith("climate.");
@@ -718,7 +718,7 @@ class PowerDeviceCard extends RcCard {
     const now = Date.now();
     if (m.state === "alert") {
       if (m.alert === "window") return this._t("window_line");
-      if (m.alert === "cold") return this._t("cold_line", { min: `${this._fmt(m.min, 0)} ${m.temp?.unit || "°C"}` });
+      if (m.alert === "cold") return this._t("cold_line", { min: `${this._fmt(m.min, m.min % 1 ? 1 : 0)} ${m.temp?.unit || "°C"}` });
       if (m.alert === "door") return m.doorSince ? this._t("door_for", { d: pdDur(now - m.doorSince) }) : this._t("al_door");
       if (m.alert === "warm") return this._t("warm_line", { max: `${this._fmt(m.max, 0)} ${m.temp?.unit || "°C"}` });
       if (m.alert === "cut") return this._t("cut_line");
