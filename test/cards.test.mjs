@@ -106,7 +106,22 @@ test("cycles: stretches above the threshold, short pauses merged, today's energy
   ]);
 });
 
-test("full card: running, its duration, the curve, three tiles and the plug's switch", async () => {
+// The clock at 13:30 local time today, so this morning's cycle is still "today" whatever the hour the tests run.
+const atMidday = async (fn) => {
+  const fixed = new Date().setHours(13, 30, 0, 0);
+  const real = Date.now;
+  const realPd = pd.Date.now;
+  Date.now = () => fixed;
+  pd.Date.now = () => fixed;
+  try {
+    await fn();
+  } finally {
+    Date.now = real;
+    pd.Date.now = realPd;
+  }
+};
+
+test("full card: running, its duration, the curve, three tiles and the plug's switch", () => atMidday(async () => {
   const hass = makeHass({ history: HISTORY });
   const card = make("power-device-card", { ...FRYER, price: 0.25 }, hass);
   assert.equal(hass.ws[0].type, "history/history_during_period");
@@ -132,7 +147,7 @@ test("full card: running, its duration, the curve, three tiles and the plug's sw
   // The plug's switch turns it off.
   click(card, ".pw");
   assert.deepEqual(json(hass.calls.at(-1)), ["switch", "turn_off", { entity_id: "switch.fryer" }]);
-});
+}));
 
 test("the curve is drawn to the minute, so an update within the same minute leaves it unchanged (#8)", async () => {
   const card = make("power-device-card", FRYER, makeHass({ history: HISTORY.slice(1) }));
