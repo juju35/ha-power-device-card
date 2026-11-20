@@ -76,6 +76,15 @@ test("kinds from the name, in several languages; a dishwasher is not a washer", 
     Congélateur: "freezer",
     Gefriertruhe: "freezer",
     "Cafetière filtre": "coffee",
+    "Radiateur salon": "radiator",
+    "Sèche-serviettes": "radiator",
+    Handtuchtrockner: "radiator",
+    "Towel dryer": "radiator",
+    "Bain d'huile": "radiator",
+    Heizkörper: "radiator",
+    "Water heater": "plug",
+    "Chauffe-eau": "plug",
+    "Four à convection": "plug",
   };
   for (const [name, kind] of Object.entries(cases)) assert.equal(pd.pdKindOf(name), kind, name);
   for (const k of pd.PD_KINDS) assert.ok(pd.PD_I18N.en[`k_${k}`], `k_${k}`);
@@ -262,6 +271,10 @@ test("models: from the option, else from the name, else the kind's first", () =>
   assert.equal(pd.pdModelOf("coffee", undefined, "Cafetière filtre"), "filter");
   assert.equal(pd.pdModelOf("coffee", undefined, "Coffee maker"), "espresso");
   assert.equal(pd.pdModelOf("fridge", "chest", "Frigo"), "single", "a model of another kind is ignored");
+  assert.equal(pd.pdModelOf("radiator", undefined, "Radiateur salon"), "column");
+  assert.equal(pd.pdModelOf("radiator", undefined, "Radiateur bain d'huile"), "oil");
+  assert.equal(pd.pdModelOf("radiator", undefined, "Sèche-serviettes"), "towel");
+  assert.equal(pd.pdModelOf("radiator", undefined, "Radiateur école"), "column", "no oil in a name holding \"ol\"");
   assert.equal(pd.pdModelOf("washer", "combi", "Lave-linge"), null);
   for (const m of Object.values(pd.PD_MODELS).flatMap((l) => l.map(([k]) => k))) assert.ok(pd.PD_I18N.en[`m_${m}`], `m_${m}`);
 });
@@ -360,4 +373,107 @@ test("mini card of a fridge: its temperature and how long the compressor rests",
   assert.match(html, /class="lvl-standby bn"/);
   assert.match(html, /<span>4 °C<\/span>/);
   assert.match(html, /Compressor off for 30 min/);
+});
+
+// A radiator's thermostat: 20 min heating, 20 min holding, all day.
+const THERMOSTAT = (on) => {
+  const rows = [];
+  for (let t = -1440; t < -40; t += 40) rows.push([t, 1490], [t + 20, 0.4]);
+  rows.push(...(on ? [[-9, 1480]] : [[-50, 1490], [-30, 0.4]]));
+  return rows;
+};
+const RADIATOR = { ...FRYER, kind: "radiator" };
+const radiatorHass = (opts = {}, extra = {}) => {
+  const h = makeHass({ watts: opts.watts ?? "1480", history: THERMOSTAT(opts.on ?? true) });
+  h.states = {
+    ...h.states,
+    "sensor.room_temp": st("sensor.room_temp", opts.temp ?? "19.6", { device_class: "temperature", unit_of_measurement: "°C" }),
+    "climate.office": st("climate.office", opts.hvac ?? "heat", { current_temperature: 18.4, temperature: 19, preset_mode: opts.preset ?? "eco" }),
+    "select.office_pilot_wire": st("select.office_pilot_wire", opts.order ?? "frost_protection", { options: ["comfort", "eco", "frost_protection", "off"] }),
+    "binary_sensor.window": { ...st("binary_sensor.window", opts.window ?? "off", { device_class: "window" }), last_changed: new Date(Date.now() - 120000).toISOString() },
+    ...extra,
+  };
+  return h;
+};
+
+test("radiator: heating or at temperature, never done; the room's temperature big, to one decimal", async () => {
+  const card = make("power-device-card", { ...RADIATOR, temperature: "sensor.room_temp" }, radiatorHass());
+  await settle();
+  card._render();
+  const m = card._items;
+  assert.equal(m.state, "heating");
+  assert.equal(m.model, "column");
+  const html = card.shadowRoot.innerHTML;
+  assert.match(html, /<span class="bpt">Heating<\/span>/);
+  assert.match(html, /<span class="big">19\.6<\/span><span class="u">°C<\/span>/);
+  assert.match(html, /Heating for 9 min/);
+  assert.match(html, /Duty cycle/);
+  assert.match(html, /lvl-heating/);
+  assert.match(html, /mdi:radiator/);
+  const hold = make("power-device-card", RADIATOR, radiatorHass({ watts: "0.4", on: false }));
+  await settle();
+  hold._render();
+  assert.equal(hold._items.state, "holding");
+  assert.match(hold.shadowRoot.innerHTML, /<span class="bpt">At temperature<\/span>/);
+  assert.match(hold.shadowRoot.innerHTML, /At temperature for 30 min/);
+  assert.match(hold.shadowRoot.innerHTML, /lvl-holding/);
+});
+
+test("radiator with its thermostat or pilot wire: target, order and its colour; window open; too cold", async () => {
+  const eco = make("power-device-card", { ...RADIATOR, climate: "climate.office" }, radiatorHass());
+  await settle();
+  eco._render();
+  assert.equal(eco._items.mode, "eco");
+  assert.equal(eco._items.target, 19);
+  const html = eco.shadowRoot.innerHTML;
+  assert.match(html, /<span class="big">18\.4<\/span><span class="u">°C → 19°<\/span>/);
+  assert.match(html, /<span>Eco<\/span>/);
+  assert.match(html, /#2e9d5a/, "the eco order glows green");
+  assert.doesNotMatch(html, /<stop offset="0" stop-color="#e8590c" stop-opacity=".3"\/>/, "its halo too");
+  const off = make("power-device-card", { ...RADIATOR, climate: "climate.office" }, radiatorHass({ hvac: "off", watts: "0", on: false }));
+  assert.equal(off._items.mode, "off");
+  const pilot = make("power-device-card", { ...RADIATOR, climate: "select.office_pilot_wire" }, radiatorHass());
+  assert.equal(pilot._items.mode, "frost");
+  const win = make("power-device-card", { ...RADIATOR, window: "binary_sensor.window" }, radiatorHass({ window: "on" }));
+  await settle();
+  win._render();
+  assert.equal(win._items.alert, "window");
+  assert.match(win.shadowRoot.innerHTML, /<span class="bpt">Window open<\/span>/);
+  assert.match(win.shadowRoot.innerHTML, /Heating with the window open/);
+  const shut = make("power-device-card", { ...RADIATOR, window: "binary_sensor.window" }, radiatorHass({ window: "on", watts: "0.4", on: false }));
+  assert.equal(shut._items.alert, null, "an open window only matters while it heats");
+  const cold = make("power-device-card", { ...RADIATOR, temperature: "sensor.room_temp", min_temp: 12 }, radiatorHass({ temp: "10.5" }));
+  assert.equal(cold._items.alert, "cold");
+  assert.match(cold.shadowRoot.innerHTML, /Below 12 °C/);
+  const half = make("power-device-card", { ...RADIATOR, temperature: "sensor.room_temp", min_temp: 12.5 }, radiatorHass({ temp: "10.5" }));
+  assert.match(half.shadowRoot.innerHTML, /Below 12\.5 °C/);
+});
+
+test("towel rail: drawn and named as one", async () => {
+  const card = make("power-device-card", { ...RADIATOR, model: "towel" }, radiatorHass());
+  await settle();
+  card._render();
+  assert.equal(card._items.model, "towel");
+  assert.match(card._items.sub, /Towel rail/);
+  assert.match(card.shadowRoot.innerHTML, /#ff922b/, "the towel over its bars");
+});
+
+test("radiator mini card: the room's temperature and its target as a chip", async () => {
+  const card = make("power-device-mini-card", { ...RADIATOR, climate: "climate.office" }, radiatorHass());
+  await settle();
+  card._render();
+  assert.match(card.shadowRoot.innerHTML, /18\.4 °C → 19°/);
+});
+
+test("radiator: a target with no room temperature still shows", async () => {
+  const h = radiatorHass({ watts: "980" }, { "climate.office": st("climate.office", "heat", { temperature: 19.5, preset_mode: "comfort" }) });
+  const card = make("power-device-card", { ...RADIATOR, climate: "climate.office" }, h);
+  await settle();
+  card._render();
+  assert.equal(card._items.temp, null);
+  assert.match(card.shadowRoot.innerHTML, /<span>Comfort · 19\.5°<\/span>/);
+  const mini = make("power-device-mini-card", { ...RADIATOR, climate: "climate.office" }, h);
+  await settle();
+  mini._render();
+  assert.match(mini.shadowRoot.innerHTML, /→ 19\.5°/);
 });

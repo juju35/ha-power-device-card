@@ -6,10 +6,13 @@
  */
 
 // Colour of each state: on the badge, the pill, the halo and the curve.
-const PD_ACCENTS = { running: "#f08c00", cooling: "#1c7ed6", alert: "#e03131", done: "#2e9d5a", standby: "#4f7fd6", idle: "#9aa3ae", offline: "#9aa3ae" };
+const PD_ACCENTS = { running: "#f08c00", heating: "#e8590c", holding: "#2e9d5a", cooling: "#1c7ed6", alert: "#e03131", done: "#2e9d5a", standby: "#4f7fd6", idle: "#9aa3ae", offline: "#9aa3ae" };
+// A radiator's glow and heat by its pilot wire order (or its thermostat's preset): heating orange, eco green, frost blue.
+const PD_PILOT_COLORS = { comfort: "#e8590c", eco: "#2e9d5a", frost: "#2f80ed", off: "#8a94a0" };
 const PD_KIND_ICONS = {
   airfryer: "mdi:pot-steam-outline",
   kettle: "mdi:kettle-steam-outline",
+  radiator: "mdi:radiator",
   toaster: "mdi:toaster",
   coffee: "mdi:coffee-maker-outline",
   fridge: "mdi:fridge-outline",
@@ -217,6 +220,60 @@ const pdFilterCoffee = ({ on, moving, phase, night, uid }) => {
     <path d="M146 48h3.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H145" stroke="#adb5bd" fill="none" stroke-width="2"/><rect x="127" y="41" width="12" height="3" rx="1" fill="${dark}"/>${drip}`;
 };
 
+// A radiator, drawn as the heating card draws it (ha-heating-card), in this card's room: a column radiator on the wall
+// (`column`), an oil-filled one on its casters (`oil`) or a towel rail (`towel`). Its columns glow from the bottom up
+// and heat rises while it heats, in `color` (orange heating; green eco, blue frost protection from its pilot wire).
+const pdRadiator = (model, { on, moving, uid, color, night }) => {
+  const id = (n) => `${n}${uid}`;
+  const steel = night ? ["#5b636e", "#8a94a0", "#4a525c"] : ["#d5dbe2", "#ffffff", "#c9d0d8"];
+  const line = night ? "#6b7480" : "#c3cad2";
+  const defs = `<defs><linearGradient id="${id("rc")}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${steel[0]}"/><stop offset=".45" stop-color="${steel[1]}"/><stop offset="1" stop-color="${steel[2]}"/></linearGradient>
+    <linearGradient id="${id("rg")}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${color}" stop-opacity=".75"/><stop offset=".7" stop-color="${color}" stop-opacity=".18"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient>
+    <radialGradient id="${id("rh")}" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></radialGradient></defs>`;
+  const glowAnim = moving ? `<animate attributeName="opacity" values=".55;1;.55" dur="${PD_LOOP}s" repeatCount="indefinite"/>` : "";
+  const glow = (x, y, w, h, r) => (on ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#${id("rg")})">${glowAnim}</rect>` : "");
+  const col = (x, y1, y2, w = 7) => `<rect x="${x}" y="${y1}" width="${w}" height="${y2 - y1}" rx="${w / 2}" fill="url(#${id("rc")})" stroke="${line}" stroke-width=".9"/>${glow(x, y1, w, y2 - y1, w / 2)}`;
+  const waves = (xs, y) =>
+    on
+      ? `<g stroke="${color}" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75">${xs
+          .map((x, i) => {
+            const a = moving ? `<animateTransform attributeName="transform" type="translate" values="0 3;0 -4" dur="${PD_LOOP}s" begin="${((i * PD_LOOP) / xs.length).toFixed(2)}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;1;0" dur="${PD_LOOP}s" begin="${((i * PD_LOOP) / xs.length).toFixed(2)}s" repeatCount="indefinite"/>` : "";
+            return `<path d="M${x} ${y}q-2-2.5 0-5t0-5">${a}</path>`;
+          })
+          .join("")}</g>`
+      : "";
+  const led = `<circle cx="0" cy="0" r="1.3" fill="${on ? color : "#9aa5b1"}">${on && moving ? `<animate attributeName="opacity" values="1;.35;1" dur="${PD_LOOP}s" repeatCount="indefinite"/>` : ""}</circle>`;
+  const ledAt = (x, y) => led.replace('cx="0" cy="0"', `cx="${x}" cy="${y}"`);
+  if (model === "towel") {
+    const bars = Array.from({ length: 11 }, (_, i) => {
+      const y = 10 + i * 7;
+      return `<rect x="17" y="${y}" width="46" height="3.2" rx="1.6" fill="url(#${id("rc")})" stroke="${line}" stroke-width=".5"/>${glow(17, y, 46, 3.2, 1.6)}`;
+    }).join("");
+    return `${defs}<svg x="117" y="16" width="46" height="64" viewBox="8 2 64 90" overflow="visible">
+      ${on ? `<circle cx="40" cy="46" r="34" fill="url(#${id("rh")})"/>` : ""}${waves([10, 70], 40)}
+      <rect x="14" y="6" width="5" height="80" rx="2.5" fill="url(#${id("rc")})" stroke="${line}" stroke-width=".6"/>
+      <rect x="61" y="6" width="5" height="80" rx="2.5" fill="url(#${id("rc")})" stroke="${line}" stroke-width=".6"/>${bars}
+      <path d="M27 22h26v38c-4 5-22 5-26 0z" fill="#ff922b"/><path d="M27 22h26v5H27z" fill="#e8590c"/>
+      <path d="M33 29v28M40 29v30M47 29v28" fill="none" stroke="#fff" stroke-width=".8" opacity=".4"/>
+      <rect x="57" y="79" width="12" height="8" rx="2" fill="#3a434e"/>${ledAt(63, 83)}</svg>`;
+  }
+  if (model === "oil") {
+    const fins = Array.from({ length: 7 }, (_, i) => col(12 + i * 8.4, 30, 80)).join("");
+    return `${defs}<svg x="108" y="18" width="64" height="62" viewBox="4 26 76 66" overflow="visible">${waves([22, 40, 58], 22)}
+      <rect x="10" y="78" width="62" height="4" rx="2" fill="#8f9aa6"/>${fins}
+      <rect x="4" y="44" width="9" height="18" rx="2.5" fill="#3a434e"/>${ledAt(8.5, 48)}<circle cx="8.5" cy="56" r="2.4" fill="#5d6874" stroke="#8f9aa6" stroke-width=".5"/>
+      <circle cx="16" cy="87" r="3.4" fill="#3a434e"/><circle cx="66" cy="87" r="3.4" fill="#3a434e"/>
+      <path d="M16 82v2M66 82v2" stroke="#8f9aa6" stroke-width="2"/></svg>`;
+  }
+  const columns = Array.from({ length: 7 }, (_, i) => col(8 + i * 8.6, 28, 84)).join("");
+  return `${defs}<svg x="109" y="18" width="62" height="62" viewBox="4 26 75 63" overflow="visible">${waves([22, 40, 58], 22)}
+    <rect x="12" y="82" width="4" height="6" rx="1" fill="#8f9aa6"/><rect x="60" y="82" width="4" height="6" rx="1" fill="#8f9aa6"/>${columns}
+    <rect x="6" y="31" width="64" height="3.4" rx="1.7" fill="${steel[1]}" stroke="${line}" stroke-width=".6"/>
+    <rect x="6" y="77" width="64" height="3.4" rx="1.7" fill="${steel[1]}" stroke="${line}" stroke-width=".6"/>
+    <rect x="70" y="42" width="7" height="22" rx="2.2" fill="#3a434e"/>${ledAt(73.5, 47)}
+    <circle cx="73.5" cy="56" r="2.2" fill="#5d6874" stroke="#8f9aa6" stroke-width=".5"/></svg>`;
+};
+
 // The appliance, its feet on y = 80, centred on x = 140. `on`: running (or on standby for what has a screen),
 // `moving`: animated. `uid` keeps the gradients of several cards apart.
 const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, phase, temp, hot }) => {
@@ -241,6 +298,8 @@ const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, 
         <rect x="120" y="44" width="16" height="5" rx="2" fill="${on ? "#ff8a3c" : "#3b4048"}"/><rect x="144" y="44" width="16" height="5" rx="2" fill="${on ? "#ff8a3c" : "#3b4048"}"/>
         ${on ? "" : '<path d="M122 45v-7q0-5 6-5t6 5v7zM146 45v-7q0-5 6-5t6 5v7z" fill="#e2b57a" stroke="#b9854a"/>'}
         <rect x="168" y="${on ? 66 : 54}" width="6" height="4" rx="1.5" fill="#5b6470"/><rect x="118" y="64" width="44" height="2" rx="1" fill="${steel[2]}" opacity=".7"/>`;
+    case "radiator":
+      return pdRadiator(model, { on, moving, uid, night, color: PD_PILOT_COLORS[phase] || PD_ACCENTS.heating });
     case "fridge":
       return pdFridge(model, { on, moving, door, night, temp, hot });
     case "freezer":
@@ -340,8 +399,8 @@ const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, 
 // The illustration: the room, a halo in the state's colour while it runs, the appliance (or `image`, the user's own
 // picture, fitted in a 64 px box on the ground).
 const pdScene = ({ kind, image, state, night, uid, animate, dx = 0, model, door, phase, temp, hot, cooling }) => {
-  const accent = PD_ACCENTS[state];
-  const on = state === "running" || state === "cooling" || !!cooling;
+  const accent = (kind === "radiator" && state === "heating" && PD_PILOT_COLORS[phase]) || PD_ACCENTS[state];
+  const on = state === "running" || state === "cooling" || state === "heating" || !!cooling;
   const standby = state === "standby";
   const moving = animate && (on || !!door);
   const defs = `<defs>
@@ -395,6 +454,7 @@ const PD_SVG = {
   peak: '<path d="M3 20l6-10 4 5 8-12"/>',
   curve: '<path d="M3 17l5-6 4 3 6-8 3 3"/>',
   power: '<path d="M12 3v8M6.3 6.8a8 8 0 1 0 11.4 0"/>',
+  thermo: '<path d="M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0zM12 9v7"/>',
 };
 
 // ── Card ─────────────────────────────────────────────────────────────────────
@@ -513,6 +573,8 @@ class PowerDeviceCard extends RcCard {
     const current = state === "running" && last && now - last.end < gap ? last : null;
     const model = pdModelOf(kind, c.model, [name, dev?.model, id].filter(Boolean).join(" "));
     const extra = this._extra(kind, model, { state, current, last, w, threshold, switchedOff, series, now });
+    // A towel rail says so, not "Radiator".
+    const kindName = this._t(kind === "radiator" && model === "towel" ? "m_towel" : `k_${kind}`);
     const todays = a ? a.cycles.filter((x) => x.end > midnight) : [];
     const energy = est && !rcUnavailable(est) && e.dailyEnergy ? pdKwh(est) : a ? a.today : null;
     return {
@@ -524,7 +586,7 @@ class PowerDeviceCard extends RcCard {
       kind,
       model,
       name,
-      sub: [h.areas?.[dev?.area_id]?.name, pdSame(name, this._t(`k_${kind}`)) ? null : this._t(`k_${kind}`)].filter(Boolean).join(" · "),
+      sub: [h.areas?.[dev?.area_id]?.name, pdSame(name, kindName) ? null : kindName].filter(Boolean).join(" · "),
       raw: pst ? h.formatEntityState?.(pst) || pst.state : "",
       watts: w,
       threshold,
@@ -554,6 +616,7 @@ class PowerDeviceCard extends RcCard {
       const warm = now - current.start >= brew;
       return { phase: warm ? "warm" : "brewing", phaseSince: warm ? current.start + brew : current.start, offIn: c.auto_off === false ? null : current.start + off - now };
     }
+    if (PD_WARM.has(kind)) return this._warm({ state });
     if (!PD_COLD.has(kind)) return {};
     const temp = (id) => {
       const st = id && h.states[id];
@@ -580,12 +643,42 @@ class PowerDeviceCard extends RcCard {
     return out;
   }
 
+  // What a radiator adds: its thermostat heating or holding, the room's temperature and its target (from its own
+  // sensor, or a thermostat / pilot wire entity shared with ha-heating-card), its order, and the window left open.
+  _warm({ state }) {
+    const h = this._hass;
+    const c = this._config;
+    const num = (v) => (v === undefined || v === null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v));
+    const cl = c.climate ? h.states[c.climate] : null;
+    const sensor = c.temperature ? h.states[c.temperature] : null;
+    const tv = sensor && !rcUnavailable(sensor) ? pdNum(sensor) : num(cl?.attributes.current_temperature);
+    const t1 = tv == null ? null : { v: tv, unit: sensor?.attributes.unit_of_measurement || h.config?.unit_system?.temperature || "°C" };
+    const target = num(cl?.attributes.temperature);
+    // The order: a pilot wire select's option, else the thermostat's preset or mode.
+    const select = cl && !c.climate.startsWith("climate.");
+    const raw = String(!cl ? "" : select ? cl.state : cl.state === "off" ? "off" : cl.attributes.preset_mode || "").toLowerCase();
+    const mode = !cl || rcUnavailable(cl) ? null : /eco|sleep|away|night|nuit/.test(raw) ? "eco" : /frost|hors|gel|anti/.test(raw) ? "frost" : /^off$|arr[eê]t|stop/.test(raw) ? "off" : "comfort";
+    const win = c.window ? h.states[c.window] : null;
+    const heating = state === "running";
+    const min = num(c.min_temp);
+    let alert = null;
+    if (win?.state === "on" && heating) alert = "window";
+    else if (t1 && min != null && t1.v < min) alert = "cold";
+    const out = { cold: true, warm: true, cooling: heating, temp: t1, target, mode, phase: mode, min, alert, windowSince: win ? Date.parse(win.last_changed) : null };
+    if (alert) out.state = "alert";
+    else if (heating) out.state = "heating";
+    else if (state !== "offline") out.state = "holding";
+    return out;
+  }
+
   // The status pill's words.
   _label(m) {
     if (m.state === "alert") return this._t(`al_${m.alert}`);
     if (m.state === "cooling") return this._t("st_cooling");
+    if (m.state === "heating") return this._t("st_heating");
+    if (m.state === "holding") return this._t(m.mode === "off" ? "pw_off" : "st_holding");
     if (m.cold && m.state === "standby") return this._t("st_resting");
-    if (m.phase) return this._t(m.phase === "warm" ? "st_warm" : "st_brewing");
+    if (m.phase && !m.warm) return this._t(m.phase === "warm" ? "st_warm" : "st_brewing");
     return this._t(`st_${m.state}`);
   }
 
@@ -624,14 +717,18 @@ class PowerDeviceCard extends RcCard {
   _line(m) {
     const now = Date.now();
     if (m.state === "alert") {
+      if (m.alert === "window") return this._t("window_line");
+      if (m.alert === "cold") return this._t("cold_line", { min: `${this._fmt(m.min, m.min % 1 ? 1 : 0)} ${m.temp?.unit || "°C"}` });
       if (m.alert === "door") return m.doorSince ? this._t("door_for", { d: pdDur(now - m.doorSince) }) : this._t("al_door");
       if (m.alert === "warm") return this._t("warm_line", { max: `${this._fmt(m.max, 0)} ${m.temp?.unit || "°C"}` });
       if (m.alert === "cut") return this._t("cut_line");
       return m.since ? this._t("long_for", { d: pdDur(now - m.since) }) : this._t("al_long");
     }
     if (m.state === "cooling" && m.since) return this._t("running_for", { d: pdDur(now - m.since) });
+    if (m.state === "heating" && m.since) return this._t("heating_for", { d: pdDur(now - m.since) });
+    if (m.state === "holding") return m.lastCycle ? this._t("hold_for", { d: pdDur(now - m.lastCycle.end) }) : this._t("st_holding");
     if (m.cold && m.state === "standby") return m.lastCycle ? this._t("rest_for", { d: pdDur(now - m.lastCycle.end) }) : this._t("st_resting");
-    if (m.phase) return this._t(m.phase === "warm" ? "warm_for" : "brewing_for", { d: pdDur(now - m.phaseSince) });
+    if (m.phase && !m.warm) return this._t(m.phase === "warm" ? "warm_for" : "brewing_for", { d: pdDur(now - m.phaseSince) });
     if (m.state === "running" && m.since) return this._t("running_for", { d: pdDur(now - m.since) });
     if (m.state === "done" && m.lastCycle) return this._t("done_ago", { d: pdDur(now - m.lastCycle.end) });
     return this._t(`st_${m.state}`);
@@ -708,7 +805,7 @@ class PowerDeviceCard extends RcCard {
     this._resize.observe(this);
     // The durations ("Running for 18 min") move on by the minute.
     this._tick ??= setInterval(() => {
-      if (["running", "done", "cooling", "alert"].includes(this._items?.state) || this._items?.cold) {
+      if (["running", "done", "cooling", "heating", "holding", "alert"].includes(this._items?.state) || this._items?.cold) {
         this._sig = null;
         this._render();
       }
@@ -783,6 +880,9 @@ class PowerDeviceCard extends RcCard {
     const now = Date.now();
     const out = [];
     if (m.state === "offline") return "";
+    // The order, with the target when no room temperature shows it beside the big reading.
+    const aim = m.target != null && !m.temp ? ` · ${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` : "";
+    if (m.mode) out.push([PD_SVG.thermo, `${this._t(`pw_${m.mode}`)}${aim}`]);
     if (m.phase && m.offIn > 0) out.push([PD_SVG.clock, this._t("auto_off_in", { d: pdDur(m.offIn) })]);
     if (m.cycles) out.push([PD_SVG.cycle, this._tn("cycles", m.cycles)]);
     if (m.avg) out.push([PD_SVG.clock, this._t("avg_cycle", { d: pdDur(m.avg) })]);
@@ -797,7 +897,7 @@ class PowerDeviceCard extends RcCard {
     const tiles = this._tileList(m);
     const minute = Math.floor(Date.now() / 60000);
     const graph = this._graph(m);
-    const parts = [m.none, m.state, m.alert, m.phase, m.model, m.temp?.v, m.temp2?.v, this._label(m), m.kind, m.name, m.sub, m.watts, m.raw, tiles, this._chips(m), graph, m.switchId, m.switchOn, banner, night, this._dark(), minute];
+    const parts = [m.none, m.state, m.alert, m.phase, m.mode, m.target, m.model, m.temp?.v, m.temp2?.v, this._label(m), m.kind, m.name, m.sub, m.watts, m.raw, tiles, this._chips(m), graph, m.switchId, m.switchOn, banner, night, this._dark(), minute];
     if (!this._changed(parts)) return;
     this._holdHeight();
     const pill = m.none ? "" : this._label(m);
@@ -815,7 +915,7 @@ class PowerDeviceCard extends RcCard {
       return;
     }
     const big = m.temp
-      ? [this._fmt(m.temp.v, Math.abs(m.temp.v) < 10 && m.temp.v % 1 ? 1 : 0), m.temp2 ? `${m.temp.unit} · ${this._fmt(m.temp2.v, 0)} ${m.temp2.unit}` : m.temp.unit]
+      ? [this._fmt(m.temp.v, (m.warm || Math.abs(m.temp.v) < 10) && m.temp.v % 1 ? 1 : 0), m.target != null ? `${m.temp.unit} ${this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` })}` : m.temp2 ? `${m.temp.unit} · ${this._fmt(m.temp2.v, 0)} ${m.temp2.unit}` : m.temp.unit]
       : m.watts != null
         ? pdPower(m.watts, this._lang()).split(" ")
         : ["—", ""];
@@ -852,6 +952,8 @@ class PowerDeviceCard extends RcCard {
   static styles = `
     ha-card.lvl-running { --c: #f08c00; }
     ha-card.lvl-cooling { --c: #1c7ed6; }
+    ha-card.lvl-heating { --c: #e8590c; }
+    ha-card.lvl-holding { --c: var(--rc-ok); }
     ha-card.lvl-alert   { --c: #e03131; }
     ha-card.lvl-done    { --c: var(--rc-ok); }
     ha-card.lvl-standby { --c: #4f7fd6; }
@@ -1009,6 +1111,9 @@ const pdSchema = (booleans) => (lang) => [
   { name: "freezer_temperature", selector: { entity: { domain: "sensor", device_class: "temperature" } } },
   { name: "max_temp", selector: { number: { min: -40, max: 30, step: 1, mode: "box" } } },
   { name: "door", selector: { entity: { domain: "binary_sensor" } } },
+  { name: "climate", selector: { entity: { domain: ["climate", "select", "input_select"] } } },
+  { name: "window", selector: { entity: { domain: "binary_sensor" } } },
+  { name: "min_temp", selector: { number: { min: 0, max: 30, step: 0.5, mode: "box" } } },
   ...rcBooleans(...booleans),
   {
     name: "illustration_theme",
@@ -1017,7 +1122,7 @@ const pdSchema = (booleans) => (lang) => [
   ...rcAdvanced(PD_I18N, lang, "language"),
 ];
 
-const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "temperature", "freezer_temperature", "max_temp", "door", "zoom", "language"];
+const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "temperature", "freezer_temperature", "max_temp", "door", "climate", "window", "min_temp", "zoom", "language"];
 
 const PowerDeviceCardEditor = rcEditor({
   card: PowerDeviceCard,
@@ -1044,17 +1149,19 @@ class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-mini-car
     const banner = this._config.illustration !== false;
     const night = banner && this._night();
     const minute = Math.floor(Date.now() / 60000);
-    if (!this._changed(["mini", m.state, m.alert, m.phase, m.model, m.temp?.v, m.watts, m.today, m.kind, m.name, m.sub, banner, night, this._dark(), minute])) return;
+    if (!this._changed(["mini", m.state, m.alert, m.phase, m.model, m.temp?.v, m.target, m.watts, m.today, m.kind, m.name, m.sub, banner, night, this._dark(), minute])) return;
     this._holdHeight();
     const chip = (text, dim) => `<button class="r pill${dim ? " dim" : ""}" data-id="${rcEsc(m.id || "")}" title="${rcEsc(text)}"><span>${rcEsc(text)}</span></button>`;
     const power = m.temp
-      ? `${this._fmt(m.temp.v, Math.abs(m.temp.v) < 10 && m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}`
-      : m.watts != null && (m.state === "running" || m.state === "standby" || m.state === "cooling")
+      ? `${this._fmt(m.temp.v, (m.warm || Math.abs(m.temp.v) < 10) && m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}${m.target != null ? ` ${this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` })}` : ""}`
+      : m.watts != null && (m.state === "running" || m.state === "standby" || m.state === "cooling" || m.state === "heating" || m.state === "holding")
         ? pdPower(m.watts, this._lang())
         : null;
-    const line = ["running", "done", "cooling", "alert"].includes(m.state) || m.cold ? this._line(m) : null;
+    const line = ["running", "done", "cooling", "heating", "holding", "alert"].includes(m.state) || m.cold ? this._line(m) : null;
     const today = m.today != null ? `${this._t("t_today")} ${this._kwh(m.today)} kWh` : null;
-    const rest = [power, line, today].filter(Boolean);
+    // A radiator's target with no room temperature to show it beside.
+    const aim = m.target != null && !m.temp ? this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` }) : null;
+    const rest = [power, aim, line, today].filter(Boolean);
     if (banner) {
       const c = this._config;
       this.shadowRoot.innerHTML = `<style>${RC_BASE_STYLES}${this.constructor.styles}</style>

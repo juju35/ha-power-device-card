@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 - 2026-11-20
+
+### Features
+- **Radiators** (`kind: radiator`, #12), in three models drawn as in ha-heating-card (`model: column | oil | towel`): the thermostat's cycles from the power — **heating** (orange, the columns glow and heat rises) or **at temperature** (green), never *done* — and the **duty cycle** over the last 24 hours as the first tile; a `temperature` sensor shown big, to one decimal.
+- **With its thermostat or pilot wire** (`climate`: a `climate` entity, or a pilot wire `select` as in ha-heating-card): the room's temperature and its target (*18.4 °C → 19°*), the order as a chip (*Comfort*, *Eco*, *Frost protection*, *Off*) and the radiator's glow in its colour.
+- **Alerts** for radiators: the window open while it heats (`window`), too cold (`min_temp`).
+- `climate`, `window` and `min_temp` in the visual editor of both cards; radiators and towel rails found from the name in every language.
+- Screenshots and animations (light and dark) of the three radiator models, the pilot wire and the open window alert.
+
 ## 1.1.1 - 2026-11-19
 
 ### Fixes
