@@ -1040,7 +1040,7 @@ class PowerDeviceCard extends RcCard {
     .banner .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: var(--gr); box-shadow: inset 0 2px 0 var(--gl); }
     /* The mini card's expand / collapse button: 24 px, frosted, 5 px from the banner's top right corner. */
     .banner .zoom { position: absolute; z-index: 2; top: 5px; right: 5px; width: 24px; height: 24px; margin: 0; color: #33506b;
-                    background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); backdrop-filter: blur(4px); }
+                    background: rgba(255,255,255,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.7); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
     .banner.night .zoom { color: #fff; background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
     .banner .zoom:hover { background: rgba(255,255,255,.75); color: #33506b; }
     .banner.night .zoom:hover { background: rgba(255,255,255,.22); color: #fff; }
