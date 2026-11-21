@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 - 2026-11-21
+
+### Features
+- **Outbuildings** (`kind: outbuilding`, #17): a garden shed, a workshop or garage, an annex or studio, a pool house (`model: shed | workshop | studio | pool_house`, found from the name in every language), drawn at the bottom of a new garden scene, day and night. Its windows light up with what it draws; in use, the shed's lamp flickers, the workshop's vent turns, smoke rises from the studio's chimney, the pool's water ripples. No cycles and never *done*: **in use**, *standby* or *nothing on*.
+- Outbuildings' tiles: today's energy, today's cost and **the last 7 days** (the recorder's daily statistics); the temperature as a chip.
+- Outbuildings' **alerts**: the door or the window left open (drawn open), **frost risk** below `min_temp` (3 °C by default), **on at night** during `quiet_hours`, **power cut** with `always_on`. `quiet_hours` and `always_on` in the visual editor of both cards.
+- **Time-of-use cost**: with a price sensor, each of its changes today prices the power used while it was in force (peak and off-peak hours, Tempo, spot prices), instead of today's energy at the current price — for every kind.
+- Screenshots and animations (light and dark) of the four outbuildings, the open door and the frost alert.
+
 ## 1.2.2 - 2026-11-21
 
 ### Fixes

@@ -227,6 +227,76 @@ const SCENES = {
     history: compressor(20, 20, 1490, [[-40, 1490], [-25, 0.4], [-14, 1495]]),
   },
   // A smart plug that stopped answering.
+  // An outbuilding at the bottom of the garden (a CT clamp on its circuit): a garden shed in use, 12 °C inside.
+  outbuilding: {
+    name: "Garden shed",
+    area: "Garden",
+    model: "Zigbee CT clamp",
+    watts: 640,
+    today: 2.36,
+    config: { kind: "outbuilding", threshold: 100, temperature: "sensor.outbuilding_temp", price: 0.2516 },
+    extra: [temp("outbuilding_temp", 12.4)],
+    stats: [62, 48, 71, 55, 90, 66],
+    history: [[-1440, 18], [-1080, 18], [-560, 420], [-470, 22], [-200, 610], [-120, 18], [-45, 640], [-12, 655], [-2, 640]],
+  },
+  // A workshop with its vent running.
+  "outbuilding-workshop": {
+    name: "Workshop",
+    area: "Garden",
+    model: "Shelly Pro EM",
+    watts: 1180,
+    today: 3.4,
+    config: { kind: "outbuilding", threshold: 100, price: 0.2516 },
+    stats: [120, 80, 140, 95, 60, 110],
+    history: [[-1440, 6], [-600, 900], [-540, 6], [-90, 1200], [-30, 1180]],
+  },
+  // A lived-in annex, its stove on, the window open for 8 minutes.
+  "outbuilding-studio": {
+    name: "Garden studio",
+    area: "Garden",
+    model: "Shelly Pro EM",
+    watts: 1450,
+    today: 7.9,
+    config: { kind: "outbuilding", threshold: 100, window: "binary_sensor.studio_window", temperature: "sensor.outbuilding_temp", price: 0.2516 },
+    extra: [temp("outbuilding_temp", 19.2), ["binary_sensor.studio_window", "on", { device_class: "window", friendly_name: "Studio window" }, 8]],
+    stats: [260, 300, 240, 310, 280, 290],
+    history: [[-1440, 40], [-700, 1300], [-500, 40], [-120, 1450]],
+  },
+  // A pool house, its pump running.
+  "outbuilding-pool": {
+    name: "Pool house",
+    area: "Garden",
+    model: "Shelly Pro 1PM",
+    watts: 760,
+    today: 4.6,
+    config: { kind: "outbuilding", threshold: 100, model: "pool_house", price: 0.2516 },
+    stats: [190, 200, 210, 180, 195, 205],
+    history: [[-1440, 4], [-720, 760], [-480, 4], [-180, 760]],
+  },
+  // A garden shed whose door was left open three minutes ago.
+  "outbuilding-door": {
+    name: "Garden shed",
+    area: "Garden",
+    model: "Zigbee CT clamp",
+    watts: 18,
+    today: 0.62,
+    config: { kind: "outbuilding", threshold: 100, door: "binary_sensor.shed_door", price: 0.2516 },
+    extra: [["binary_sensor.shed_door", "on", { device_class: "door", friendly_name: "Shed door" }, 3]],
+    stats: [30, 28, 35, 26, 31, 29],
+    history: [[-1440, 18], [-300, 420], [-280, 18]],
+  },
+  // A workshop with nothing on, 1 °C inside: frost.
+  "outbuilding-frost": {
+    name: "Workshop",
+    area: "Garden",
+    model: "Shelly Pro EM",
+    watts: 0,
+    today: 0.12,
+    config: { kind: "outbuilding", threshold: 100, temperature: "sensor.outbuilding_temp" },
+    extra: [temp("outbuilding_temp", 1)],
+    stats: [10, 12, 8, 11, 9, 10],
+    history: [[-1440, 0], [-400, 600], [-380, 0]],
+  },
   offline: {
     name: "Garage plug",
     area: "Garage",
@@ -271,5 +341,7 @@ export const setup = (s) => {
 export const wsFor = (s) => `window.__ws = async (msg) => {
   const now = Date.now();
   const rows = ${JSON.stringify(SCENES[s.scene].history)}.map(([m, w]) => ({ s: String(w), lu: (now + m * 60000) / 1000 }));
+  const stats = ${JSON.stringify(SCENES[s.scene].stats || [])}.map((mean) => ({ mean }));
+  if (msg.type === "recorder/statistics_during_period") return stats.length ? { [msg.statistic_ids.at(-1)]: stats } : {};
   return msg.type === "history/history_during_period" ? { [msg.entity_ids[0]]: rows } : {};
 };`;
