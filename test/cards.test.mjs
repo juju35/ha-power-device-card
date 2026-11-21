@@ -494,3 +494,102 @@ test("radiator: a target with no room temperature still shows", async () => {
   mini._render();
   assert.match(mini.shadowRoot.innerHTML, /→ 19\.5°/);
 });
+
+test("outbuildings: found from the name, their models, no cycle chips", () => {
+  const cases = { "Local Julie": "outbuilding", "Abri de jardin": "outbuilding", Atelier: "outbuilding", Dépendance: "outbuilding", "Pool house": "outbuilding", Gartenhaus: "outbuilding", "Studio monitor": "monitor", "Garage freezer": "freezer" };
+  for (const [name, kind] of Object.entries(cases)) assert.equal(pd.pdKindOf(name), kind, name);
+  const models = { "Abri de jardin": "shed", "Local Julie": "shed", Atelier: "workshop", "Garage": "workshop", Dépendance: "studio", "Guest studio": "studio", "Pool house": "pool_house", "Pool-house piscine": "pool_house" };
+  for (const [name, model] of Object.entries(models)) assert.equal(pd.pdModelOf("outbuilding", "auto", name), model, name);
+});
+
+const SHED = { ...FRYER, kind: "outbuilding", price: 0.25 };
+const shedHass = (states = {}, opts = {}) => {
+  const h = makeHass({ history: HISTORY, ...opts });
+  return { ...h, states: { ...h.states, ...states } };
+};
+const open = (id) => st(id, "on", { device_class: "door" });
+
+test("outbuilding: in use, its tiles (today, cost, the last 7 days), its temperature as a chip", async () => {
+  const hass = shedHass({ "sensor.shed_temp": st("sensor.shed_temp", "12.4", { device_class: "temperature", unit_of_measurement: "°C" }) }, { stats: { "sensor.fryer_power": [{ mean: 50 }, { mean: 100 }] } });
+  const card = make("power-device-card", { ...SHED, temperature: "sensor.shed_temp" }, hass);
+  await settle();
+  const m = card._items;
+  assert.equal(m.kind, "outbuilding");
+  assert.equal(m.model, "shed");
+  assert.equal(m.state, "running");
+  assert.equal(m.week, 0.42 + 3.6, "six days of statistics (mean W × 24 h) plus today");
+  const stat = hass.ws.find((w) => w.type === "recorder/statistics_during_period");
+  assert.equal(stat.period, "day");
+  const html = card.shadowRoot.innerHTML;
+  assert.match(html, /class="banner r-garden"/);
+  assert.match(html, /<span class="bpt">In use<\/span>/);
+  assert.match(html, /In use for 18 min/);
+  assert.match(html, /<span class="big">1\.2<\/span><span class="u">kW<\/span>/, "the power stays the big reading");
+  assert.match(html, /Last 7 days/);
+  assert.match(html, /4\.02<small>kWh/);
+  assert.match(card._chips(m), /12\.4 °C/);
+  assert.doesNotMatch(card._chips(m), /cycle/, "a building has no cycles");
+});
+
+test("outbuilding: nothing on, never done; an icon by model", async () => {
+  const hass = makeHass({ watts: "0", history: [[-1440, 0.2], [-300, 900], [-40, 0]] });
+  const card = make("power-device-card", { ...SHED, model: "workshop" }, hass);
+  await settle();
+  const m = card._items;
+  assert.equal(m.state, "idle");
+  assert.equal(card._label(m), "Nothing on");
+  assert.equal(card._line(m), "Nothing on for 40 min");
+  assert.equal(card._icon(m), "mdi:garage-variant");
+});
+
+test("outbuilding alerts: the door, the window, frost, a power cut, on during the quiet hours", async () => {
+  const alert = async (config, states = {}, opts = {}) => {
+    const card = make("power-device-card", { ...SHED, ...config }, shedHass(states, opts));
+    await settle();
+    return card;
+  };
+  let card = await alert({ door: "binary_sensor.shed_door" }, { "binary_sensor.shed_door": open("binary_sensor.shed_door") });
+  assert.equal(card._items.alert, "door");
+  assert.match(card.shadowRoot.innerHTML, /<span class="bpt">Door open<\/span>/);
+  card = await alert({ window: "binary_sensor.shed_window" }, { "binary_sensor.shed_window": open("binary_sensor.shed_window") });
+  assert.equal(card._items.alert, "window");
+  assert.match(card._line(card._items), /^Window open for /);
+  card = await alert({ temperature: "sensor.t" }, { "sensor.t": st("sensor.t", "1.5", { unit_of_measurement: "°C" }) });
+  assert.equal(card._items.alert, "frost");
+  assert.equal(card._line(card._items), "Below 3 °C");
+  card = await alert({ temperature: "sensor.t", min_temp: 0 }, { "sensor.t": st("sensor.t", "1.5", { unit_of_measurement: "°C" }) });
+  assert.equal(card._items.alert, null, "min_temp moves the frost line");
+  card = await alert({ always_on: true }, {}, { watts: "0", history: [[-1440, 6], [-20, 0]] });
+  assert.equal(card._items.alert, "cut");
+  assert.equal(card._line(card._items), "No power for 20 min");
+  card = await alert({}, {}, { watts: "0", history: [[-1440, 6], [-20, 0]] });
+  assert.equal(card._items.alert, null, "without always_on, nothing drawn is just nothing on");
+  const hour = new Date().getHours();
+  card = await alert({ quiet_hours: `${hour}:00-${(hour + 1) % 24}:00` });
+  assert.equal(card._items.alert, "night");
+  assert.equal(card._label(card._items), "On at night");
+});
+
+test("quiet hours: within a day or across midnight", () => {
+  const at = (h, m = 0) => new Date(2026, 10, 21, h, m).getTime();
+  assert.equal(pd.pdQuiet("23:00-06:00", at(23, 30)), true);
+  assert.equal(pd.pdQuiet("23:00-06:00", at(5, 59)), true);
+  assert.equal(pd.pdQuiet("23:00-06:00", at(6, 0)), false);
+  assert.equal(pd.pdQuiet("9-17", at(12)), true);
+  assert.equal(pd.pdQuiet("9-17", at(18)), false);
+  assert.equal(pd.pdQuiet("tonight", at(23)), false);
+});
+
+test("cost: each step priced at the price in force (a tariff that changes during the day)", async () => {
+  // 1 kW for two hours: one at 0.10, one at 0.30.
+  const h = 3600000;
+  const priced = pd.pdCostOf([{ t: 0, w: 1000 }], [{ t: 0, w: 0.1 }, { t: h, w: 0.3 }], 0, 2 * h);
+  assert.equal(priced.kwh, 2);
+  assert.ok(Math.abs(priced.cost - 0.4) < 1e-9);
+  // Before the first price: that first price.
+  assert.ok(Math.abs(pd.pdCostOf([{ t: 0, w: 1000 }], [{ t: h, w: 0.2 }], 0, 2 * h).cost - 0.4) < 1e-9);
+  // In the card: today at the history's 0.10 (the sensor says 0.25 only now), on the daily sensor's 0.42 kWh.
+  const card = make("power-device-card", { ...FRYER, price_entity: "sensor.price" }, makeHass({ history: HISTORY, prices: [[-1440, 0.1]] }));
+  await settle();
+  assert.equal(card._items.cost, "€0.04");
+});

@@ -1,9 +1,10 @@
 // A mock Home Assistant with appliances on smart plugs: an air fryer (a Shelly plug: power, switch, daily energy) in
 // the kitchen, a washing machine on a meter with no switch, and a lone power sensor with no device. `history` answers
-// the recorder's history call with [minutes from now, watts] steps for every entity asked.
+// the recorder's history call with [minutes from now, watts] steps for every entity asked — `prices` the same way for
+// the price sensor —, and its daily statistics with `stats` ({ id: [{ change, mean }] }).
 export const st = (entity_id, state, attributes = {}) => ({ entity_id, state, attributes, last_changed: "2026-01-01T00:00:00Z" });
 
-export const makeHass = ({ watts = "1240", sw = "on", washer = "0.8", history = [], ...overrides } = {}) => {
+export const makeHass = ({ watts = "1240", sw = "on", washer = "0.8", history = [], prices = [], stats = {}, ...overrides } = {}) => {
   const calls = [];
   return {
     language: "en",
@@ -41,8 +42,9 @@ export const makeHass = ({ watts = "1240", sw = "on", washer = "0.8", history = 
     callWS(msg) {
       this.ws.push(msg);
       const now = Date.now();
-      const rows = history.map(([m, w]) => ({ s: String(w), lu: (now + m * 60000) / 1000 }));
-      return Promise.resolve(Object.fromEntries(msg.entity_ids.map((id) => [id, rows])));
+      if (msg.type === "recorder/statistics_during_period") return Promise.resolve(Object.fromEntries(msg.statistic_ids.filter((id) => stats[id]).map((id) => [id, stats[id]])));
+      const rows = (steps) => steps.map(([m, w]) => ({ s: String(w), lu: (now + m * 60000) / 1000 }));
+      return Promise.resolve(Object.fromEntries(msg.entity_ids.map((id) => [id, rows(id === "sensor.price" ? prices : history)])));
     },
     ...overrides,
   };

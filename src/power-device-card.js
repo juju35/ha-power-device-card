@@ -30,7 +30,10 @@ const PD_KIND_ICONS = {
   piano: "mdi:piano",
   multiplug: "mdi:power-socket-eu",
   plug: "mdi:power-plug-outline",
+  outbuilding: "mdi:home-variant-outline",
 };
+// An outbuilding's icon by its model.
+const PD_BUILDING_ICONS = { shed: "mdi:home-variant-outline", workshop: "mdi:garage-variant", studio: "mdi:home-outline", pool_house: "mdi:pool" };
 // One loop of the illustrations' animations (s): steam rises, a drum turns, LEDs blink. The GIFs record one loop.
 const PD_LOOP = 2.4;
 // A filter coffee maker brews for this long (min), then keeps the jug warm; it turns itself off after `auto_off` (min).
@@ -45,6 +48,12 @@ const PD_DONE_MS = 15 * 60000;
 // The history is fetched again after this long.
 const PD_HISTORY_MS = 5 * 60000;
 const PD_DAY_MS = 24 * 3600000;
+// The last seven days' energy (an outbuilding's tile) is fetched again after this long.
+const PD_WEEK_MS = 30 * 60000;
+// An outbuilding's frost alert, by default, below this (°C) when it has a temperature sensor.
+const PD_FROST_C = 3;
+// An outbuilding that always draws something (`always_on`) with nothing drawn for this long: a power cut.
+const PD_CUT_MS = 5 * 60000;
 // A cycle's pauses (minutes) by kind: a washing machine soaks, a dishwasher dries; a kettle's cycle ends at once.
 const PD_GAPS = { washer: 5, dryer: 5, dishwasher: 10, coffee: 2, airfryer: 2, homelab: 2, pc: 2 };
 
@@ -84,6 +93,7 @@ const PD_WALLS = {
   garage: ["#e4e6e9", "#d6d9dd", "#24272b", "#2d3135"],
   rack: ["#e5e9ef", "#d8dee7", "#1e232a", "#272d35"],
   wall: ["#eef1f4", "#e3e7ec", "#23272c", "#2c3137"],
+  garden: ["#dcecf7", "#cfe3f1", "#142036", "#1b2942"],
 };
 
 const pdRoom = (room, night) => {
@@ -115,6 +125,12 @@ const pdRoom = (room, night) => {
       <rect x="54" y="16" width="12" height="20" rx="2" fill="#e5484d"/>`,
     rack: `<rect x="0" y="0" width="200" height="5" fill="${night ? "#2f353e" : "#c4ccd6"}"/><path d="M10 5v14M40 5v10M70 5v18" stroke="${night ? "#4a5563" : "#9aa7b6"}" stroke-width="2"/>
       <rect x="14" y="40" width="40" height="28" rx="3" fill="${pale}" stroke="${ink}"/><path d="M20 48h28M20 54h20M20 60h24" stroke="${ink}" stroke-width="2"/>`,
+    garden: night
+      ? `<g fill="#e9e4c9">${[[14, 10], [36, 22], [58, 8], [80, 18], [70, 30]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".9"/>`).join("")}</g>
+      <circle cx="90" cy="12" r="5" fill="#e9e4c9"/><circle cx="92.5" cy="10.5" r="5" fill="${wall}"/>
+      <path d="M0 80V68q10-6 20 0t20 0 20 0 20 0 14 2V80z" fill="#1f3326"/><path d="M84 80V52q-6-2-6-9t8-10 10 6 2 9-8 6v26z" fill="#22382a"/>`
+      : `<g fill="#ffffff" opacity=".85"><ellipse cx="22" cy="14" rx="12" ry="4"/><ellipse cx="30" cy="11" rx="7" ry="4"/><ellipse cx="70" cy="22" rx="10" ry="3.4"/></g>
+      <path d="M0 80V68q10-6 20 0t20 0 20 0 20 0 14 2V80z" fill="#a9cf9a"/><path d="M86 80V58" stroke="#8a6a4a" stroke-width="2.2"/><circle cx="86" cy="50" r="9" fill="#8cc07c"/><circle cx="80" cy="54" r="6" fill="#9ccb8b"/>`,
     wall: `<rect x="0" y="74" width="200" height="6" fill="${night ? "#2f353d" : "#ffffff"}" stroke="${ink}" stroke-width=".6"/>
       <rect x="20" y="10" width="30" height="22" rx="2" fill="${pale}" stroke="${ink}"/><path d="M24 28l7-8 5 5 4-3 6 6z" fill="${night ? "#4b5a78" : "#b9c6d8"}"/>`,
   }[room];
@@ -274,9 +290,82 @@ const pdRadiator = (model, { on, moving, uid, color, night }) => {
     <circle cx="73.5" cy="56" r="2.2" fill="#5d6874" stroke="#8f9aa6" stroke-width=".5"/></svg>`;
 };
 
+// An outbuilding at the bottom of the garden, its feet on y = 80: a garden shed (`shed`), a workshop or garage
+// (`workshop`), a lived-in annex or studio (`studio`) or a pool house (`pool_house`). Its windows light up with what it
+// draws — dimly on standby, brightly in use — and in use it comes alive: a lamp flickers in the shed, the workshop's
+// vent turns, smoke rises from the studio's chimney, the pool's water ripples. The door and the window open with their
+// sensors; frost forms on the glass when it is too cold.
+const pdBuilding = (model, { on, standby, moving, night, door, win, frost }) => {
+  const lit = on ? "#ffd27a" : standby ? (night ? "#d9b46a" : "#f3dfa6") : night ? "#1b2532" : "#a9c3d6";
+  const inside = on || standby ? (night ? "#e7b75d" : "#ffe1a0") : night ? "#141a22" : "#3d4651";
+  const frame = night ? "#c9d1d8" : "#ffffff";
+  const flicker = on && moving ? `<animate attributeName="opacity" values="1;.78;1;.9;1" dur="${PD_LOOP}s" repeatCount="indefinite"/>` : "";
+  // A window at (x, y), w × h: lit glass, its frame and cross bar; open, the sash swung out to the right.
+  const pane = (x, y, w, h, bar = true) => {
+    const glass = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${win ? inside : lit}">${flicker}</rect>`;
+    const sash = win
+      ? `<path d="M${x + w} ${y}l${(w * 0.45).toFixed(1)} 3v${h - 6}l-${(w * 0.45).toFixed(1)} 3z" fill="${night ? "#2a3644" : "#cfe0ec"}" stroke="${frame}" stroke-width="1.4"/>`
+      : bar
+        ? `<path d="M${x + w / 2} ${y}v${h}M${x} ${y + h / 2}h${w}" stroke="${frame}" stroke-width="1.2"/>`
+        : "";
+    const ice = frost ? pdFrost([[x + w * 0.3, y + h * 0.55], [x + w * 0.72, y + h * 0.4]], true, moving) : "";
+    return `${glass}<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${frame}" stroke-width="1.6"/>${sash}${ice}`;
+  };
+  // A door at (x, y), w × h ending on the ground: closed, its leaf and handle; open, the inside and the leaf swung out.
+  const leaf = (x, y, w, h, color, glass = false) =>
+    door
+      ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${inside}">${flicker}</rect><path d="M${x} ${y}l-${(w * 0.55).toFixed(1)} -3v${h + 3}l${(w * 0.55).toFixed(1)} 0z" fill="${color}" stroke="${night ? "#1b2027" : "#5b4636"}" stroke-width=".8"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${color}" stroke="${night ? "#1b2027" : "#5b4636"}" stroke-width=".8"/>${glass ? `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h * 0.42}" fill="${lit}">${flicker}</rect>` : ""}<circle cx="${x + w - 3.5}" cy="${y + h * 0.55}" r="1.3" fill="${night ? "#c9d1d8" : "#e8d9b0"}"/>`;
+  // The light spilling on the ground from the lit windows and the open door.
+  const spill = on || standby ? `<ellipse cx="140" cy="80" rx="40" ry="3" fill="#ffd27a" opacity="${on ? 0.45 : 0.22}"/>` : "";
+  if (model === "workshop") {
+    const wall = night ? "#59616b" : "#cfd4d9";
+    const gate = night ? "#7a838d" : "#eef1f3";
+    const slats = [0, 1, 2, 3, 4].map((k) => `<path d="M104 ${55 + k * 5}h40" stroke="${night ? "#5c646e" : "#c3cad1"}" stroke-width="1"/>`).join("");
+    const opening = door
+      ? `<rect x="104" y="50" width="40" height="30" fill="${inside}">${flicker}</rect><rect x="104" y="50" width="40" height="5" fill="${gate}" stroke="${night ? "#3d434b" : "#aab3bc"}" stroke-width=".8"/>`
+      : `<rect x="104" y="50" width="40" height="30" fill="${gate}" stroke="${night ? "#3d434b" : "#aab3bc"}" stroke-width=".8"/>${slats}`;
+    const blades = '<path d="M165 70l0-5M165 70l4.3 2.5M165 70l-4.3 2.5" stroke="#5b6470" stroke-width="2" stroke-linecap="round"/>';
+    return `${spill}<rect x="98" y="38" width="86" height="42" fill="${wall}"/><path d="M93 41l96-12v7l-96 11z" fill="${night ? "#3a4048" : "#6b7480"}"/>
+      ${opening}${pane(152, 46, 24, 13)}<rect x="157" y="62" width="16" height="16" rx="2" fill="${night ? "#3a4048" : "#e3e7ea"}" stroke="${night ? "#2a2f36" : "#9aa3ae"}"/>
+      <circle cx="165" cy="70" r="6" fill="none" stroke="#5b6470" stroke-width="1"/>${pdSpin(165, 70, blades, on && moving)}`;
+  }
+  if (model === "studio") {
+    const wall = night ? "#8c857a" : "#f4efe6";
+    return `${pdSteam(164, 10, on, moving, 4)}${spill}<rect x="158" y="14" width="10" height="20" fill="${night ? "#5a4e46" : "#b46a4e"}"/><rect x="156" y="12" width="14" height="4" fill="${night ? "#4a403a" : "#8f513b"}"/>
+      <rect x="102" y="40" width="76" height="40" fill="${wall}"/><path d="M94 42L140 13l46 29z" fill="${night ? "#3f4852" : "#5f6b78"}"/>
+      <path d="M100 42h80" stroke="${night ? "#2c333b" : "#46505b"}" stroke-width="2"/>
+      ${leaf(110, 52, 16, 28, night ? "#4b5a6a" : "#5b7ea6", true)}${pane(134, 50, 36, 18)}
+      <rect x="132" y="68" width="40" height="2.4" fill="${night ? "#b9b2a6" : "#e0d8ca"}"/>`;
+  }
+  if (model === "pool_house") {
+    const clad = night ? "#6b5640" : "#c99a6b";
+    const water = `<rect x="174" y="72" width="30" height="8" fill="${night ? "#1f5f86" : "#5ec1ea"}"/>${
+      on
+        ? `<path d="M176 75q3-2 6 0t6 0 6 0 6 0" stroke="#e8f7ff" stroke-width="1" fill="none" opacity=".85">${moving ? `<animateTransform attributeName="transform" type="translate" values="0 0;-6 0;0 0" dur="${PD_LOOP}s" repeatCount="indefinite"/>` : ""}</path>`
+        : ""
+    }<rect x="172" y="71" width="32" height="2" fill="${night ? "#9aa3ae" : "#eef1f3"}"/>`;
+    const slide = door
+      ? `<rect x="110" y="48" width="36" height="32" fill="${inside}">${flicker}</rect><rect x="128" y="48" width="18" height="32" fill="${lit}" opacity=".55" stroke="${frame}" stroke-width="1.4"/>`
+      : `<rect x="110" y="48" width="36" height="32" fill="${lit}">${flicker}</rect><path d="M128 48v32" stroke="${frame}" stroke-width="1.6"/>`;
+    const beams = [0, 1, 2, 3].map((k) => `<rect x="${170 + k * 7}" y="33" width="3" height="4" fill="${night ? "#8a939d" : "#ffffff"}"/>`).join("");
+    return `${spill}<rect x="104" y="40" width="64" height="40" fill="${clad}"/><g stroke="${night ? "#5a4733" : "#b5885c"}" stroke-width=".8">${[46, 52, 58, 64, 70, 76].map((y) => `<path d="M104 ${y}h64"/>`).join("")}</g>
+      <rect x="98" y="34" width="76" height="6" rx="1" fill="${night ? "#c9d1d8" : "#ffffff"}" stroke="${night ? "#8a939d" : "#c9d1d8"}" stroke-width=".6"/>
+      <rect x="170" y="33" width="28" height="2" fill="${night ? "#8a939d" : "#ffffff"}"/>${beams}<path d="M196 35v37" stroke="${night ? "#8a939d" : "#ffffff"}" stroke-width="2"/>
+      ${slide}<rect x="110" y="48" width="36" height="32" fill="none" stroke="${frame}" stroke-width="1.6"/>${pane(152, 50, 11, 12, false)}${water}`;
+  }
+  // The garden shed: wooden planks, a gabled roof, a plank door and a small window; a lamp hangs inside.
+  const wood = night ? "#5a4330" : "#b07d4f";
+  const planks = Array.from({ length: 11 }, (_, i) => `<path d="M${110 + i * 6} 42v38" stroke="${night ? "#4a3626" : "#9a6a40"}" stroke-width=".9"/>`).join("");
+  return `${spill}<rect x="106" y="42" width="68" height="38" fill="${wood}"/>${planks}
+    <path d="M98 44L140 18l42 26z" fill="${night ? "#3d3530" : "#6b4a3a"}"/><path d="M98 44L140 18l42 26" stroke="${night ? "#2a2420" : "#523628"}" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="140" cy="33" r="3.2" fill="${on ? "#ffd27a" : night ? "#2a3644" : "#f2e6d0"}" stroke="${night ? "#2a2420" : "#523628"}" stroke-width="1">${flicker}</circle>
+    ${leaf(118, 50, 18, 30, night ? "#6b5039" : "#c79566")}${pane(148, 52, 16, 13)}`;
+};
+
 // The appliance, its feet on y = 80, centred on x = 140. `on`: running (or on standby for what has a screen),
 // `moving`: animated. `uid` keeps the gradients of several cards apart.
-const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, phase, temp, hot }) => {
+const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, win, frost, phase, temp, hot }) => {
   const steel = night ? ["#4a515b", "#30353c", "#666e79"] : ["#fbfcfe", "#dfe4ea", "#b9c1cb"];
   const dark = night ? "#1b1f25" : "#2b2f36";
   const glow = `url(#g${uid})`;
@@ -298,6 +387,8 @@ const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, 
         <rect x="120" y="44" width="16" height="5" rx="2" fill="${on ? "#ff8a3c" : "#3b4048"}"/><rect x="144" y="44" width="16" height="5" rx="2" fill="${on ? "#ff8a3c" : "#3b4048"}"/>
         ${on ? "" : '<path d="M122 45v-7q0-5 6-5t6 5v7zM146 45v-7q0-5 6-5t6 5v7z" fill="#e2b57a" stroke="#b9854a"/>'}
         <rect x="168" y="${on ? 66 : 54}" width="6" height="4" rx="1.5" fill="#5b6470"/><rect x="118" y="64" width="44" height="2" rx="1" fill="${steel[2]}" opacity=".7"/>`;
+    case "outbuilding":
+      return pdBuilding(model, { on, standby, moving, night, door, win, frost });
     case "radiator":
       return pdRadiator(model, { on, moving, uid, night, color: PD_PILOT_COLORS[phase] || PD_ACCENTS.heating });
     case "fridge":
@@ -398,11 +489,11 @@ const pdDevice = (kind, { on, standby, moving, uid, night, accent, model, door, 
 
 // The illustration: the room, a halo in the state's colour while it runs, the appliance (or `image`, the user's own
 // picture, fitted in a 64 px box on the ground).
-const pdScene = ({ kind, image, state, night, uid, animate, dx = 0, model, door, phase, temp, hot, cooling }) => {
+const pdScene = ({ kind, image, state, night, uid, animate, dx = 0, model, door, win, frost, phase, temp, hot, cooling }) => {
   const accent = (kind === "radiator" && state === "heating" && PD_PILOT_COLORS[phase]) || PD_ACCENTS[state];
   const on = state === "running" || state === "cooling" || state === "heating" || !!cooling;
   const standby = state === "standby";
-  const moving = animate && (on || !!door);
+  const moving = animate && (on || !!door || !!frost);
   const defs = `<defs>
       <radialGradient id="h${uid}"><stop offset="0" stop-color="${accent}" stop-opacity=".3"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
       <radialGradient id="g${uid}" cx="50%" cy="55%" r="60%"><stop offset="0" stop-color="#ffd27a"/><stop offset=".6" stop-color="#ff9a3c"/><stop offset="1" stop-color="#c2410c"/></radialGradient>
@@ -412,7 +503,7 @@ const pdScene = ({ kind, image, state, night, uid, animate, dx = 0, model, door,
   const halo = on || state === "done" || state === "alert" ? `<ellipse cx="140" cy="46" rx="64" ry="40" fill="url(#h${uid})">${blink}</ellipse>` : "";
   const thing = image
     ? `<image href="${rcEsc(image)}" x="108" y="16" width="64" height="64" preserveAspectRatio="xMidYMax meet"${state === "idle" || state === "offline" ? ' opacity=".75"' : ""}/>`
-    : pdDevice(kind, { on, standby, moving, uid, night, accent, model, door, phase, temp, hot });
+    : pdDevice(kind, { on, standby, moving, uid, night, accent, model, door, win, frost, phase, temp, hot });
   return `${defs}${pdRoom(PD_ROOM[kind] || "wall", night)}<g${dx ? ` transform="translate(${-dx} 0)"` : ""}>${halo}${thing}</g>`;
 };
 
@@ -500,23 +591,92 @@ class PowerDeviceCard extends RcCard {
     return this._fmt(v, v >= 100 ? 0 : v >= 10 ? 1 : 2);
   }
 
-  // Today's cost: the price per kWh (`price_entity`, a price sensor, else `price`, a number — a decimal comma is
-  // fine — or a sensor) times today's energy, in Home Assistant's currency.
-  _cost(kwh) {
+  // The price sensor: `price_entity`, else a sensor id in `price`.
+  _priceEntity() {
+    const c = this._config;
+    return c.price_entity || (typeof c.price === "string" && /^[a-z_]+\.\w+$/.test(c.price.trim()) ? c.price.trim() : null);
+  }
+
+  // Today's cost, in Home Assistant's currency: today's energy at the price per kWh — `price` (a number; a decimal comma
+  // is fine), or a price sensor whose every change today prices the power used while it was in force (`series`).
+  _cost(kwh, series, midnight, now) {
     const c = this._config;
     if (kwh == null) return null;
-    const ent = c.price_entity || (typeof c.price === "string" && /^[a-z_]+\.\w+$/.test(c.price.trim()) ? c.price.trim() : null);
+    const ent = this._priceEntity();
     if (!ent && (c.price == null || c.price === "")) return null;
     const st = ent ? this._hass.states[ent] : null;
     if (ent && (!st || rcUnavailable(st))) return null;
     const price = st ? pdNum(st) : pdPrice(c.price);
     if (price == null) return null;
+    let total = kwh * price;
+    const prices = ent ? this._prices(ent, midnight) : null;
+    if (prices?.length && series?.length) {
+      // The power since midnight priced step by step, scaled to today's energy (a daily energy sensor may count a
+      // little more or less than the power's history).
+      const priced = pdCostOf(series, [...prices, { t: now, w: price }], midnight, now);
+      if (priced.kwh > 0) total = (priced.cost / priced.kwh) * kwh;
+    }
+    return this._money(total);
+  }
+
+  _money(v) {
     const currency = this._hass.config?.currency || "EUR";
     try {
-      return new Intl.NumberFormat(this._lang(), { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kwh * price);
+      return new Intl.NumberFormat(this._lang(), { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
     } catch {
-      return `${(kwh * price).toFixed(2)} ${currency}`;
+      return `${v.toFixed(2)} ${currency}`;
     }
+  }
+
+  // A price sensor's history since midnight, fetched again every PD_HISTORY_MS (null until it is there).
+  _prices(id, midnight) {
+    const h = this._hass;
+    if (typeof h.callWS !== "function") return null;
+    const now = Date.now();
+    const cache = this._priceHist;
+    if (cache?.id === id && cache.from === midnight && (cache.pending || now - cache.at < PD_HISTORY_MS)) return cache.points;
+    this._priceHist = { id, from: midnight, at: now, pending: true, points: cache?.id === id && cache.from === midnight ? cache.points : null };
+    Promise.resolve(h.callWS({ type: "history/history_during_period", start_time: new Date(midnight).toISOString(), entity_ids: [id], minimal_response: true, no_attributes: true, significant_changes_only: false }))
+      .then((res) => {
+        if (this._priceHist?.id !== id) return;
+        this._priceHist = { id, from: midnight, at: Date.now(), points: pdPoints(res?.[id]) };
+        this._sig = null;
+        this._render();
+      })
+      .catch(() => {
+        if (this._priceHist?.id === id) this._priceHist = { id, from: midnight, at: Date.now(), points: [] };
+      });
+    return this._priceHist.points;
+  }
+
+  // The energy of the six days before today, from the recorder's daily statistics: the energy sensor's change, else
+  // the power's daily mean (W × 24 h). Fetched again every PD_WEEK_MS; null until it is there or with no statistics.
+  _week(ids, midnight) {
+    const h = this._hass;
+    if (typeof h.callWS !== "function" || !ids.power) return null;
+    const key = `${ids.energy || ""}|${ids.power}|${midnight}`;
+    const now = Date.now();
+    const cache = this._weekStats;
+    if (cache?.key === key && (cache.pending || now - cache.at < PD_WEEK_MS)) return cache.kwh;
+    this._weekStats = { key, at: now, pending: true, kwh: cache?.key === key ? cache.kwh : null };
+    const start = new Date(midnight);
+    start.setDate(start.getDate() - 6);
+    const statistic_ids = [ids.energy, ids.power].filter(Boolean);
+    Promise.resolve(
+      h.callWS({ type: "recorder/statistics_during_period", start_time: start.toISOString(), end_time: new Date(midnight).toISOString(), statistic_ids, period: "day", types: ["change", "mean"], units: { energy: "kWh", power: "W" } }),
+    )
+      .then((res) => {
+        if (this._weekStats?.key !== key) return;
+        const sum = (rows, f) => (rows?.length ? rows.reduce((a, r) => a + (Number.isFinite(r[f]) ? r[f] : 0), 0) : null);
+        const kwh = sum(ids.energy && res?.[ids.energy], "change") ?? (res?.[ids.power]?.length ? sum(res[ids.power], "mean") * 0.024 : null);
+        this._weekStats = { key, at: Date.now(), kwh };
+        this._sig = null;
+        this._render();
+      })
+      .catch(() => {
+        if (this._weekStats?.key === key) this._weekStats = { key, at: Date.now(), kwh: null };
+      });
+    return this._weekStats.kwh;
   }
 
   // The power history of the last 24 hours, fetched once and again every PD_HISTORY_MS (or for another sensor).
@@ -575,11 +735,13 @@ class PowerDeviceCard extends RcCard {
     else state = "idle";
     const current = state === "running" && last && now - last.end < gap ? last : null;
     const model = pdModelOf(kind, c.model, [name, dev?.model, id].filter(Boolean).join(" "));
-    const extra = this._extra(kind, model, { state, current, last, w, threshold, switchedOff, series, now });
+    const extra = this._extra(kind, model, { state, current, last, w, threshold, standbyAt, switchedOff, series, now });
     // A towel rail says so, not "Radiator".
     const kindName = this._t(kind === "radiator" && model === "towel" ? "m_towel" : `k_${kind}`);
     const todays = a ? a.cycles.filter((x) => x.end > midnight) : [];
     const energy = est && !rcUnavailable(est) && e.dailyEnergy ? pdKwh(est) : a ? a.today : null;
+    // An outbuilding's last seven days: the six before today and today.
+    const before = PD_BUILDING.has(kind) ? this._week(e, midnight) : null;
     return {
       id: e.power || id,
       none: !id,
@@ -602,7 +764,8 @@ class PowerDeviceCard extends RcCard {
       cycles: todays.length,
       avg: todays.length ? todays.reduce((s, x) => s + x.end - x.start, 0) / todays.length : null,
       today: energy,
-      cost: this._cost(energy),
+      cost: this._cost(energy, series, midnight, now),
+      week: before != null && energy != null ? before + energy : null,
       switchId: sst && !rcUnavailable(sst) ? e.switch : null,
       switchOn: sst?.state === "on",
     };
@@ -610,7 +773,7 @@ class PowerDeviceCard extends RcCard {
 
   // What a fridge, a freezer or a filter coffee maker adds: its compressor cooling or resting, its temperatures and
   // alerts (door open, too warm, no power, running non-stop); a filter coffee maker brewing, then keeping warm.
-  _extra(kind, model, { state, current, last, w, threshold, switchedOff, series, now }) {
+  _extra(kind, model, { state, current, last, w, threshold, standbyAt, switchedOff, series, now }) {
     const h = this._hass;
     const c = this._config;
     if (kind === "coffee" && model === "filter" && state === "running" && current) {
@@ -620,6 +783,7 @@ class PowerDeviceCard extends RcCard {
       return { phase: warm ? "warm" : "brewing", phaseSince: warm ? current.start + brew : current.start, offIn: c.auto_off === false ? null : current.start + off - now };
     }
     if (PD_WARM.has(kind)) return this._warm({ state });
+    if (PD_BUILDING.has(kind)) return this._building({ state, w, standbyAt, switchedOff, series, now });
     if (!PD_COLD.has(kind)) return {};
     const temp = (id) => {
       const st = id && h.states[id];
@@ -674,9 +838,42 @@ class PowerDeviceCard extends RcCard {
     return out;
   }
 
+  // What an outbuilding adds: in use or not (it has no cycles), its door and window, its temperature, and its alerts —
+  // the door or the window left open, frost (below `min_temp`, 3 °C by default), something on during `quiet_hours`,
+  // and a power cut when what `always_on` says always draws something draws nothing.
+  _building({ state, w, standbyAt, switchedOff, series, now }) {
+    const h = this._hass;
+    const c = this._config;
+    const sensor = c.temperature ? h.states[c.temperature] : null;
+    const tv = sensor && !rcUnavailable(sensor) ? pdNum(sensor) : null;
+    const t1 = tv == null ? null : { v: tv, unit: sensor.attributes.unit_of_measurement || "°C" };
+    const min = c.min_temp !== undefined && c.min_temp !== "" && Number.isFinite(Number(c.min_temp)) ? Number(c.min_temp) : PD_FROST_C;
+    const open = (id) => (id && h.states[id]?.state === "on" ? h.states[id] : null);
+    const doorSt = open(c.door);
+    const winSt = open(c.window);
+    const on = state === "running" || state === "done";
+    // Nothing drawn since: the first step below `standby` of the history's last run of them.
+    let quietSince = null;
+    if ((w ?? 0) < standbyAt && series?.length) {
+      quietSince = now;
+      for (let i = series.length - 1; i >= 0 && series[i].w < standbyAt; i--) quietSince = series[i].t;
+    }
+    let alert = null;
+    if (doorSt) alert = "door";
+    else if (winSt) alert = "window";
+    else if (t1 && t1.v < min) alert = "frost";
+    else if (state !== "offline" && c.always_on && (switchedOff || (quietSince != null && now - quietSince >= PD_CUT_MS))) alert = "cut";
+    else if (on && pdQuiet(c.quiet_hours, now)) alert = "night";
+    const out = { building: true, temp: t1, min, alert, doorSince: doorSt ? Date.parse(doorSt.last_changed) : null, windowSince: winSt ? Date.parse(winSt.last_changed) : null, quietSince };
+    if (alert) out.state = "alert";
+    else if (on) out.state = "running";
+    return out;
+  }
+
   // The status pill's words.
   _label(m) {
     if (m.state === "alert") return this._t(`al_${m.alert}`);
+    if (m.building) return this._t(m.state === "running" ? "st_in_use" : m.state === "idle" ? "st_nothing_on" : `st_${m.state}`);
     if (m.state === "cooling") return this._t("st_cooling");
     if (m.state === "heating") return this._t("st_heating");
     if (m.state === "holding") return this._t(m.mode === "off" ? "pw_off" : "st_holding");
@@ -713,12 +910,25 @@ class PowerDeviceCard extends RcCard {
 
   _icon(m) {
     if (m.state === "offline") return "mdi:power-plug-off-outline";
-    return PD_KIND_ICONS[m.kind] || "mdi:power-plug-outline";
+    return (m.building && PD_BUILDING_ICONS[m.model]) || PD_KIND_ICONS[m.kind] || "mdi:power-plug-outline";
   }
 
   // The line under the big reading: how long it has run, how long ago it finished, or the state.
   _line(m) {
     const now = Date.now();
+    if (m.state === "alert" && m.building) {
+      if (m.alert === "door") return m.doorSince ? this._t("door_for", { d: pdDur(now - m.doorSince) }) : this._t("al_door");
+      if (m.alert === "window") return m.windowSince ? this._t("window_for", { d: pdDur(now - m.windowSince) }) : this._t("al_window");
+      if (m.alert === "frost") return this._t("cold_line", { min: `${this._fmt(m.min, m.min % 1 ? 1 : 0)} ${m.temp?.unit || "°C"}` });
+      if (m.alert === "cut") return m.quietSince ? this._t("no_power_for", { d: pdDur(now - m.quietSince) }) : this._t("cut_line");
+      return this._t("night_line");
+    }
+    if (m.building) {
+      if (m.state === "running" && m.since) return this._t("in_use_for", { d: pdDur(now - m.since) });
+      if (m.state === "running") return this._t("st_in_use");
+      if (m.state === "idle") return m.quietSince ? this._t("nothing_on_for", { d: pdDur(now - m.quietSince) }) : this._t("st_nothing_on");
+      return this._t(`st_${m.state}`);
+    }
     if (m.state === "alert") {
       if (m.alert === "window") return this._t("window_line");
       if (m.alert === "cold") return this._t("cold_line", { min: `${this._fmt(m.min, m.min % 1 ? 1 : 0)} ${m.temp?.unit || "°C"}` });
@@ -756,7 +966,9 @@ class PowerDeviceCard extends RcCard {
           animate: this._animate(),
           dx,
           model: m.model,
-          door: m.alert === "door",
+          door: m.alert === "door" || (m.building && m.doorSince != null),
+          win: m.building && m.windowSince != null,
+          frost: m.alert === "frost",
           phase: m.phase,
           cooling: m.cooling,
           temp: m.temp ? `${Math.round(m.temp.v)}°` : "",
@@ -808,7 +1020,7 @@ class PowerDeviceCard extends RcCard {
     this._resize.observe(this);
     // The durations ("Running for 18 min") move on by the minute.
     this._tick ??= setInterval(() => {
-      if (["running", "done", "cooling", "heating", "holding", "alert"].includes(this._items?.state) || this._items?.cold) {
+      if (["running", "done", "cooling", "heating", "holding", "alert"].includes(this._items?.state) || this._items?.cold || this._items?.building) {
         this._sig = null;
         this._render();
       }
@@ -866,9 +1078,10 @@ class PowerDeviceCard extends RcCard {
       today: ["bars", "t_today", kwh(m.today)],
       cost: ["cost", "t_cost", m.cost ? [m.cost, ""] : null],
       peak: ["peak", "t_peak", m.peak ? rcWatts(m.peak, this._lang()).split(" ") : null],
+      week: ["bars", "t_week", kwh(m.week)],
     };
     if (m.state === "offline") return [];
-    return (m.cold ? ["duty", "today", "cost", "cycle"] : ["cycle", "today", "cost", "peak"])
+    return (m.building ? ["today", "cost", "week", "peak"] : m.cold ? ["duty", "today", "cost", "cycle"] : ["cycle", "today", "cost", "peak"])
       .map((k) => all[k])
       .filter((t) => t[2])
       .slice(0, 3);
@@ -886,6 +1099,10 @@ class PowerDeviceCard extends RcCard {
     // The order, with the target when no room temperature shows it beside the big reading.
     const aim = m.target != null && !m.temp ? ` · ${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` : "";
     if (m.mode) out.push([PD_SVG.thermo, `${this._t(`pw_${m.mode}`)}${aim}`]);
+    if (m.building) {
+      if (m.temp) out.push([PD_SVG.thermo, `${this._fmt(m.temp.v, m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}`]);
+      return out.map(([icon, text]) => `<span class="chip">${pdIcon(icon)}<span>${rcEsc(text)}</span></span>`).join("");
+    }
     if (m.phase && m.offIn > 0) out.push([PD_SVG.clock, this._t("auto_off_in", { d: pdDur(m.offIn) })]);
     if (m.cycles) out.push([PD_SVG.cycle, this._tn("cycles", m.cycles)]);
     if (m.avg) out.push([PD_SVG.clock, this._t("avg_cycle", { d: pdDur(m.avg) })]);
@@ -917,7 +1134,7 @@ class PowerDeviceCard extends RcCard {
       this._fitPill();
       return;
     }
-    const big = m.temp
+    const big = m.temp && !m.building
       ? [this._fmt(m.temp.v, (m.warm || Math.abs(m.temp.v) < 10) && m.temp.v % 1 ? 1 : 0), m.target != null ? `${m.temp.unit} ${this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` })}` : m.temp2 ? `${m.temp.unit} · ${this._fmt(m.temp2.v, 0)} ${m.temp2.unit}` : m.temp.unit]
       : m.watts != null
         ? pdPower(m.watts, this._lang()).split(" ")
@@ -1022,6 +1239,7 @@ class PowerDeviceCard extends RcCard {
     .banner.r-garage { background: #e4e6e9; --gr: #9aa1a9; --gl: #b5bbc2; }
     .banner.r-rack { background: #e5e9ef; --gr: #8c959d; --gl: #a9b1b8; }
     .banner.r-wall { background: #eef1f4; --gr: #c4ad8f; --gl: #dcc8ad; }
+    .banner.r-garden { background: #dcecf7; --gr: #6faa5c; --gl: #8cc07c; }
     .banner.night { background: #232a2f; --bt: #fff; --bs: rgba(255,255,255,.78); --ic: color-mix(in srgb, var(--c) 72%, #fff); --gr: #4a3a2c; --gl: #5d4a38; }
     .banner.night.r-laundry { background: #222a30; --gr: #3a4249; --gl: #4a535b; }
     .banner.night.r-desk { background: #1d2333; --gr: #4a3626; --gl: #5d4632; }
@@ -1029,6 +1247,7 @@ class PowerDeviceCard extends RcCard {
     .banner.night.r-garage { background: #24272b; --gr: #2c3035; --gl: #3a4048; }
     .banner.night.r-rack { background: #1e232a; --gr: #2a3038; --gl: #383f48; }
     .banner.night.r-wall { background: #23272c; --gr: #4a4034; --gl: #5c5042; }
+    .banner.night.r-garden { background: #142036; --gr: #24402c; --gl: #2f5238; }
     .lvl-idle .banner, .lvl-offline .banner { --ic: #6b7680; }
     .lvl-idle .banner.night, .lvl-offline .banner.night { --ic: #a7b0b8; }
     .banner .head { position: relative; z-index: 1; flex: 1; min-width: 0; height: 80px; box-sizing: border-box;
@@ -1120,7 +1339,9 @@ const pdSchema = (booleans) => (lang, _hass, config) => [
   { name: "door", selector: { entity: { domain: "binary_sensor" } } },
   { name: "climate", selector: { entity: { domain: ["climate", "select", "input_select"] } } },
   { name: "window", selector: { entity: { domain: "binary_sensor" } } },
-  { name: "min_temp", selector: { number: { min: 0, max: 30, step: 0.5, mode: "box" } } },
+  { name: "min_temp", selector: { number: { min: -10, max: 30, step: 0.5, mode: "box" } } },
+  { name: "quiet_hours", selector: { text: {} } },
+  { name: "always_on", selector: { boolean: {} } },
   ...rcBooleans(...booleans),
   {
     name: "illustration_theme",
@@ -1129,7 +1350,7 @@ const pdSchema = (booleans) => (lang, _hass, config) => [
   ...rcAdvanced(PD_I18N, lang, "language"),
 ];
 
-const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "price_entity", "temperature", "freezer_temperature", "max_temp", "door", "climate", "window", "min_temp", "zoom", "language"];
+const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "price_entity", "temperature", "freezer_temperature", "max_temp", "door", "climate", "window", "min_temp", "quiet_hours", "always_on", "zoom", "language"];
 
 const PowerDeviceCardEditor = rcEditor({
   card: PowerDeviceCard,
@@ -1159,16 +1380,18 @@ class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-mini-car
     if (!this._changed(["mini", m.state, m.alert, m.phase, m.model, m.temp?.v, m.target, m.watts, m.today, m.kind, m.name, m.sub, banner, night, this._dark(), minute])) return;
     this._holdHeight();
     const chip = (text, dim) => `<button class="r pill${dim ? " dim" : ""}" data-id="${rcEsc(m.id || "")}" title="${rcEsc(text)}"><span>${rcEsc(text)}</span></button>`;
-    const power = m.temp
+    const power = m.temp && !m.building
       ? `${this._fmt(m.temp.v, (m.warm || Math.abs(m.temp.v) < 10) && m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}${m.target != null ? ` ${this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` })}` : ""}`
       : m.watts != null && (m.state === "running" || m.state === "standby" || m.state === "cooling" || m.state === "heating" || m.state === "holding")
         ? pdPower(m.watts, this._lang())
         : null;
     const line = ["running", "done", "cooling", "heating", "holding", "alert"].includes(m.state) || m.cold ? this._line(m) : null;
+    // An outbuilding's temperature, beside what it draws.
+    const inside = m.building && m.temp ? `${this._fmt(m.temp.v, m.temp.v % 1 ? 1 : 0)} ${m.temp.unit}` : null;
     const today = m.today != null ? `${this._t("t_today")} ${this._kwh(m.today)} kWh` : null;
     // A radiator's target with no room temperature to show it beside.
     const aim = m.target != null && !m.temp ? this._t("to_target", { t: `${this._fmt(m.target, m.target % 1 ? 1 : 0)}°` }) : null;
-    const rest = [power, aim, line, today].filter(Boolean);
+    const rest = [power, inside, aim, line, today].filter(Boolean);
     if (banner) {
       const c = this._config;
       this.shadowRoot.innerHTML = `<style>${RC_BASE_STYLES}${this.constructor.styles}</style>
