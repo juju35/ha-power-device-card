@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2 - 2026-11-21
+
+### Fixes
+- Today's cost shows with a price typed with a decimal comma (`price: 0,1684`, read as text by YAML) or followed by its currency (`0.25 €`), instead of no cost at all (#17).
+- `price_entity`: the price sensor (or an `input_number`) gets its own entity picker in the visual editor; the fixed `price` is now a number field. `price: sensor.…` keeps working.
+
 ## 1.2.1 - 2026-11-20
 
 ### Fixes

@@ -194,6 +194,23 @@ test("options: threshold, kind, a picture, the price as a sensor, no graph", asy
   assert.match(html, /€0\.11/, "0.42 kWh at the sensor's 0.25");
 });
 
+test("price: a decimal comma, a currency, a price sensor (price_entity), an unavailable sensor", async () => {
+  const cost = async (config, hass = makeHass({ history: HISTORY })) => {
+    const card = make("power-device-card", { ...FRYER, ...config }, hass);
+    await settle();
+    return card._items.cost;
+  };
+  assert.equal(await cost({ price: "0,25" }), "€0.11", "a decimal comma, as typed in French (0.42 kWh)");
+  assert.equal(await cost({ price: "0.25 €" }), "€0.11", "a currency after the number");
+  assert.equal(await cost({ price: " sensor.price " }), "€0.11", "a sensor id in price, spaces trimmed");
+  assert.equal(await cost({ price: 1, price_entity: "sensor.price" }), "€0.11", "the price sensor wins over a fixed price");
+  assert.equal(await cost({ price: "abc" }), null, "no number, no cost");
+  const h = makeHass({ history: HISTORY });
+  const off = { ...h, states: { ...h.states, "sensor.price": st("sensor.price", "unavailable") } };
+  assert.equal(await cost({ price_entity: "sensor.price" }, off), null, "an unavailable price sensor, no cost");
+  assert.equal(pd.pdPrice("0,1684"), 0.1684);
+});
+
 test("banner night: the dark theme alone, unless illustration_theme forces it", () => {
   const night = (darkMode, sun, config = {}) => {
     const h = makeHass();
@@ -246,7 +263,7 @@ test("editors: defaults stay out of the YAML, every field has a label", () => {
     ed.setConfig({ type: `custom:${tag}`, ...FRYER });
     ed.hass = makeHass();
     const names = flat(ed._form.schema).map((f) => f.name);
-    for (const n of ["entity", "kind", "model", "image", "switch", "energy", "threshold", "standby", "price", "temperature", "freezer_temperature", "max_temp", "door", "show_graph", "illustration_theme", "language"]) assert.ok(names.includes(n), `${tag}: ${n}`);
+    for (const n of ["entity", "kind", "model", "image", "switch", "energy", "threshold", "standby", "price", "price_entity", "temperature", "freezer_temperature", "max_temp", "door", "show_graph", "illustration_theme", "language"]) assert.ok(names.includes(n), `${tag}: ${n}`);
     for (const f of flat(ed._form.schema)) {
       assert.notEqual(ed._form.computeLabel(f), `ed_${f.name}`, `${tag}: no label for ${f.name}`);
       const helper = ed._form.computeHelper(f);

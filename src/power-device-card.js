@@ -500,14 +500,17 @@ class PowerDeviceCard extends RcCard {
     return this._fmt(v, v >= 100 ? 0 : v >= 10 ? 1 : 2);
   }
 
-  // Today's cost: the price per kWh (`price`, a number or a sensor) times today's energy, in Home Assistant's currency.
+  // Today's cost: the price per kWh (`price_entity`, a price sensor, else `price`, a number — a decimal comma is
+  // fine — or a sensor) times today's energy, in Home Assistant's currency.
   _cost(kwh) {
     const c = this._config;
-    if (kwh == null || c.price == null || c.price === "") return null;
-    const st = typeof c.price === "string" && /^[a-z_]+\.\w+$/.test(c.price) ? this._hass.states[c.price] : null;
-    if (typeof c.price === "string" && /^[a-z_]+\.\w+$/.test(c.price) && !st) return null;
-    const price = st ? pdNum(st) : Number(c.price);
-    if (!Number.isFinite(price)) return null;
+    if (kwh == null) return null;
+    const ent = c.price_entity || (typeof c.price === "string" && /^[a-z_]+\.\w+$/.test(c.price.trim()) ? c.price.trim() : null);
+    if (!ent && (c.price == null || c.price === "")) return null;
+    const st = ent ? this._hass.states[ent] : null;
+    if (ent && (!st || rcUnavailable(st))) return null;
+    const price = st ? pdNum(st) : pdPrice(c.price);
+    if (price == null) return null;
     const currency = this._hass.config?.currency || "EUR";
     try {
       return new Intl.NumberFormat(this._lang(), { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kwh * price);
@@ -1087,7 +1090,7 @@ class PowerDeviceCard extends RcCard {
 }
 
 // ── Editor ───────────────────────────────────────────────────────────────────
-const pdSchema = (booleans) => (lang) => [
+const pdSchema = (booleans) => (lang, _hass, config) => [
   { name: "entity", selector: { entity: { domain: ["sensor", "switch", "input_boolean"] } } },
   { name: "title", selector: { text: {} } },
   { name: "navigation_path", selector: { navigation: {} } },
@@ -1106,7 +1109,11 @@ const pdSchema = (booleans) => (lang) => [
   { name: "energy", selector: { entity: { domain: "sensor", device_class: "energy" } } },
   { name: "threshold", selector: { number: { min: 0, max: 5000, step: 1, mode: "box", unit_of_measurement: "W" } } },
   { name: "standby", selector: { number: { min: 0, max: 500, step: 0.1, mode: "box", unit_of_measurement: "W" } } },
-  { name: "price", selector: { text: {} } },
+  // A price typed by hand (a sensor id in `price`, from before `price_entity`, keeps its text field).
+  typeof config?.price === "string" && /^[a-z_]+\.\w+$/.test(config.price.trim())
+    ? { name: "price", selector: { text: {} } }
+    : { name: "price", selector: { number: { min: 0, step: "any", mode: "box" } } },
+  { name: "price_entity", selector: { entity: { domain: ["sensor", "input_number"] } } },
   { name: "temperature", selector: { entity: { domain: "sensor", device_class: "temperature" } } },
   { name: "freezer_temperature", selector: { entity: { domain: "sensor", device_class: "temperature" } } },
   { name: "max_temp", selector: { number: { min: -40, max: 30, step: 1, mode: "box" } } },
@@ -1122,7 +1129,7 @@ const pdSchema = (booleans) => (lang) => [
   ...rcAdvanced(PD_I18N, lang, "language"),
 ];
 
-const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "temperature", "freezer_temperature", "max_temp", "door", "climate", "window", "min_temp", "zoom", "language"];
+const PD_HELPERS = ["entity", "title", "switch", "energy", "model", "image", "threshold", "standby", "price", "price_entity", "temperature", "freezer_temperature", "max_temp", "door", "climate", "window", "min_temp", "zoom", "language"];
 
 const PowerDeviceCardEditor = rcEditor({
   card: PowerDeviceCard,

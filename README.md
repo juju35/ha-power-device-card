@@ -47,7 +47,7 @@ The cards share the look of the other ha-* cards (illustrated header with a stat
 - **Cycles**: stretches at or above the threshold, read from the last 24 hours of history. A short drop under it does not end a cycle — a washing machine soaks, a dishwasher dries: the pause allowed is 5 minutes for a washing machine or a dryer, 10 for a dishwasher, 2 for a coffee maker, an air fryer, a PC or a rack, 1 for the rest (`cycle_gap` in minutes sets it)
 - **The big reading**: the power (*0.8 W*, *186 W*, *1.2 kW*) and what it means — *Running for 18 min*, *Done 6 min ago*, *Standby*, *Off*. A tap opens the sensor's dialog
 - **The 24-hour curve**: the power as steps (a plug reports on change), its area, the running threshold dashed (*on ≥ 10 W*), in the state's colour (`show_graph: false` hides it)
-- **Three tiles**: this cycle's energy (or the last cycle's), today's energy (the device's daily energy sensor, else worked out from the power since midnight), today's cost (with `price`, a number or a price sensor, in Home Assistant's currency), else the curve's peak
+- **Three tiles**: this cycle's energy (or the last cycle's), today's energy (the device's daily energy sensor, else worked out from the power since midnight), today's cost (with `price`, a fixed price — `0.1684` or `"0,1684"` —, or `price_entity`, a price sensor, in Home Assistant's currency), else the curve's peak
 - **Chips**: today's cycles, their average length, how long ago the last one ended
 - **The plug's switch**: a round button turns the appliance on and off (the plug's switch, found on its device, or `switch`; `show_controls: false` removes it)
 - **Illustrated header**: a 90 px banner with the appliance drawn in its room — on a kitchen worktop, in a laundry, on a desk, in a living room, a garage or a server corner — on a ground strip edge to edge; the name, the area and the state on the wall at the left, beside a round badge whose icon (the appliance's) takes the state's colour. Running, the appliance comes alive: steam rises from the air fryer, the kettle and the coffee maker, frost twinkles by a cooling fridge or freezer, coffee drips into the filter coffee maker's jug, the toaster's slots glow, the drum of the washing machine or the dryer turns, the PC's fans spin, the rack's LEDs blink, notes rise from the piano; a halo in the state's colour shows behind it. Screens light up on standby too. By night (with a dark Home Assistant theme; `illustration_theme: day | night` forces it) the room is dark. `illustration: false` brings back the classic header
@@ -148,7 +148,7 @@ type: custom:power-device-card
 entity: sensor.gaming_pc_power
 threshold: 30
 standby: 2
-price: sensor.electricity_price
+price_entity: sensor.electricity_price
 
 # Your own picture
 type: custom:power-device-card
@@ -191,7 +191,8 @@ entity: sensor.kettle_power
 | `threshold` | number | `10` | Watts at or above which the appliance runs |
 | `standby` | number | `1` | Watts at or above which it is on standby (below `threshold`) |
 | `cycle_gap` | number | by kind | YAML: minutes under the threshold that do not end a cycle |
-| `price` | number or string | | The price of a kWh, or a sensor with it, for today's cost |
+| `price` | number or string | | The price of a kWh, for today's cost (a decimal comma is fine: `"0,1684"`) |
+| `price_entity` | entity | | A sensor (or an `input_number`) with the current price of a kWh, in place of `price` |
 | `temperature` | string | | Both: a fridge's, a freezer's or a radiator's room temperature sensor, shown big; an alert above `max_temp` (below `min_temp` for a radiator) |
 | `freezer_temperature` | string | | Both: a fridge-freezer's second sensor, for its freezer (an alert above −12 °C) |
 | `max_temp` | number | `8` (fridge), `-12` (freezer) | Both: the temperature above which a too-warm alert shows |
