@@ -1,6 +1,6 @@
 {
   "name": "ha-power-device-card",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "An illustrated Lovelace card for any appliance on a smart plug or a power meter: its power, whether it runs and for how long, its 24-hour curve and cycles, today's energy and cost.",
   "repository": {
     "type": "git",
