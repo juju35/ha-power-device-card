@@ -309,6 +309,8 @@ npm test             # unit tests
 npm run screenshots  # renders the cards with mock appliances into screenshots/ (and the GIFs, needs ffmpeg)
 ```
 
+The source is split into ES modules under `src/power-device-card/` (entry `src/power-device-card/index.js`), `src/shared/` (entry `src/shared/index.js`); `npm run build` assembles them (`scripts/bundle.mjs`) into the single file the Marketplace serves.
+
 `dist/` is not committed: `npm run build` creates it locally, CI builds it on every push, and the release workflow attaches the built files to the release, which is where the Marketplace installs them from.
 
 ### Releasing
