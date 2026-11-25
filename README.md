@@ -291,6 +291,11 @@ entity: sensor.kettle_power
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door.png" alt="Mini, fridge door open" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest.png" alt="Mini, chest freezer" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter.png" alt="Mini, filter coffee brewing" width="320">  <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-radiator-climate.png" alt="Mini, radiator on its pilot wire" width="320"> |
 | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-fridge-door-dark.png" alt="Mini, fridge door open, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-freezer-chest-dark.png" alt="Mini, chest freezer, dark" width="320"> | <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-coffee-filter-dark.png" alt="Mini, filter coffee brewing, dark" width="320">  <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-radiator-climate-dark.png" alt="Mini, radiator on its pilot wire, dark" width="320"> |
 
+| Outbuilding (a clamp on its circuit) |
+|---|
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-outbuilding.png" alt="Mini, outbuilding" width="320"> |
+| <img src="https://raw.githubusercontent.com/juju35/ha-power-device-card/main/screenshots/pd-mini-outbuilding-dark.png" alt="Mini, outbuilding, dark" width="320"> |
+
 ## How it works
 
 - **Appliance**: `entity`, else the first power sensor of a device that also has a switch (a smart plug), else the first power sensor of the home
