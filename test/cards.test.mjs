@@ -115,7 +115,17 @@ test("cycles: stretches above the threshold, short pauses merged, today's energy
   ]);
 });
 
-test("full card: running, its duration, the curve, three tiles and the plug's switch", async () => {
+test("full card: running, its duration, the curve, three tiles and the plug's switch", async (t) => {
+  // "This morning's cycle" is 5 h 30 before now: pin the clock in the afternoon, or the test fails before 05:30.
+  const afternoon = new Date().setHours(14, 0, 0, 0);
+  const realNow = Date.now;
+  const realPdNow = pd.Date.now;
+  Date.now = () => afternoon;
+  pd.Date.now = () => afternoon;
+  t.after(() => {
+    Date.now = realNow;
+    pd.Date.now = realPdNow;
+  });
   const hass = makeHass({ history: HISTORY });
   const card = make("power-device-card", { ...FRYER, price: 0.25 }, hass);
   assert.equal(hass.ws[0].type, "history/history_during_period");
