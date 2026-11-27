@@ -615,11 +615,11 @@ export class PowerDeviceCard extends RcCard {
   _bindAfter(root) {
     const m = this._items;
     if (!m || m.none) return;
-    root.querySelector(".rv")?.addEventListener("click", () => rcMoreInfo(this, m.id));
+    root.querySelector(".rv")?.addEventListener("click", () => rcMoreInfo(this, m.id), this._on);
     root.querySelector(".pw")?.addEventListener("click", (ev) => {
       ev.stopPropagation();
       rcCall(this._hass, m.switchId.split(".")[0], m.switchOn ? "turn_off" : "turn_on", { entity_id: m.switchId });
-    });
+    }, this._on);
   }
 
   static styles = `

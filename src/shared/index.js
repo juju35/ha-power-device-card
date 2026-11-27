@@ -7,6 +7,7 @@ import "./i18n/tables.js";
 import "./i18n-helpers.js";
 import "./power-device.js";
 import "./helpers.js";
+import "./in-place-redraw.js";
 import "./base-card.js";
 import "./mini-cards.js";
 import "./common-styles.js";

@@ -4,6 +4,7 @@
 import { pdPower } from "./illustration.js";
 import { PowerDeviceCard } from "./card.js";
 import { PD_HELPERS, pdSchema } from "./editor.js";
+import { rcMorph } from "../shared/in-place-redraw.js";
 
 export class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-mini-card", ".r { --t: var(--c); } .r.dim { --t: var(--rc-idle); }") {
   getCardSize() {
@@ -31,11 +32,12 @@ export class PowerDeviceMiniCard extends rcMini(PowerDeviceCard, "power-device-m
     const rest = [power, inside, aim, line, today].filter(Boolean);
     if (banner) {
       const c = this._config;
-      this.shadowRoot.innerHTML = `<style>${RC_BASE_STYLES}${this.constructor.styles}</style>
-        <ha-card class="lvl-${m.state} bn">${this._banner(m, rest.length ? `<div class="rs">${rest.map((t) => chip(t, true)).join("")}</div>` : "", night, m.none ? "" : this._label(m))}</ha-card>`;
+      rcMorph(this.shadowRoot, `<style>${RC_BASE_STYLES}${this.constructor.styles}</style>
+        <ha-card class="lvl-${m.state} bn">${this._banner(m, rest.length ? `<div class="rs">${rest.map((t) => chip(t, true)).join("")}</div>` : "", night, m.none ? "" : this._label(m))}</ha-card>`);
+      this._rewire();
       const root = this.shadowRoot;
-      if (c.navigation_path) rcBindNav(root.querySelector(".head"), c.navigation_path);
-      for (const el of root.querySelectorAll(".r")) el.addEventListener("click", () => rcMoreInfo(this, el.dataset.id));
+      if (c.navigation_path) rcBindNav(root.querySelector(".head"), c.navigation_path, this._on);
+      for (const el of root.querySelectorAll(".r")) el.addEventListener("click", () => rcMoreInfo(this, el.dataset.id), this._on);
       this._fitPill();
       return;
     }
